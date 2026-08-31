@@ -22,9 +22,17 @@ import { SalesDashboardView } from './SalesDashboardView';
 import { ProductsManagerView } from './ProductsManagerView';
 import { OrdersManagerView } from './OrdersManagerView';
 import { AppointmentsManagerView } from './AppointmentsManagerView';
+import { AdminTeamManagerView } from './AdminTeamManagerView';
 import { ProductEditorModal } from './ProductEditorModal';
 import { OrderDetailModal } from './OrderDetailModal';
 import { AdminAuthGuard } from './AdminAuthGuard';
+import {
+  getCurrentAdminSession,
+  logoutAdmin,
+  isCurrentAdminAuthenticated,
+  getAdminCount,
+  MAX_ADMIN_ACCOUNTS,
+} from '../../services/adminAuthService';
 
 import {
   LayoutDashboard,
@@ -38,6 +46,7 @@ import {
   Layers,
   ChevronRight,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 
 interface AdminPortalProps {
@@ -46,10 +55,11 @@ interface AdminPortalProps {
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('saanvya_admin_auth') === 'true';
+    return isCurrentAdminAuthenticated();
   });
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'appointments'>('dashboard');
+  const [currentAdmin, setCurrentAdmin] = useState(() => getCurrentAdminSession());
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'appointments' | 'admins'>('dashboard');
 
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
@@ -90,8 +100,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
   }, [isAuthenticated]);
 
   const handleLogout = () => {
-    sessionStorage.removeItem('saanvya_admin_auth');
+    logoutAdmin();
     setIsAuthenticated(false);
+    setCurrentAdmin(null);
   };
 
   // Product CRUD Handlers
@@ -195,6 +206,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
 
           {/* Quick Actions & Exit */}
           <div className="flex items-center gap-3 text-xs font-sans">
+            {currentAdmin && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-antique-gold/30 text-[11px] text-ivory-base/90">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span className="font-medium text-antique-gold">{currentAdmin.fullName}</span>
+              </div>
+            )}
+
             <button
               onClick={loadData}
               disabled={isLoading}
@@ -293,6 +311,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
                 {appointments.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('admins')}
+              className={`w-full p-3 flex items-center justify-between transition-colors ${
+                activeTab === 'admins'
+                  ? 'bg-primary text-ivory-base font-semibold shadow-sm'
+                  : 'text-charcoal-text/80 hover:bg-surface-container'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-antique-gold" />
+                <span>Admin Team & Access</span>
+              </div>
+              <span className="px-2 py-0.5 text-[10px] font-mono bg-surface-container border border-outline-variant/50 text-charcoal-text">
+                {getAdminCount()}/{MAX_ADMIN_ACCOUNTS}
+              </span>
+            </button>
           </div>
 
           {/* Quick System Badge */}
@@ -302,7 +337,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
               <span>Saanvya Store Engine</span>
             </div>
             <p className="text-[11px] text-charcoal-text/60 leading-relaxed">
-              Active admin session authenticated. Modifications in this portal update the customer storefront in real time.
+              Authenticated admin environment. Modifications in this portal update the customer storefront in real time.
             </p>
           </div>
         </aside>
@@ -356,6 +391,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
               appointments={appointments}
               onUpdateStatus={handleUpdateAppointmentStatus}
             />
+          )}
+
+          {activeTab === 'admins' && (
+            <AdminTeamManagerView />
           )}
         </main>
       </div>

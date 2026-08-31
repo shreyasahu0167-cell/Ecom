@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SAANVYA | Modern Indian Couture</title>
+    <script type="text/javascript">
+      // GitHub Pages SPA Single-Page App Redirect Handler
+      // Automatically catches 404 paths and routes them into the client hash router
+      (function() {
+        var path = window.location.pathname;
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
+
+        // Detect repository prefix (e.g. /Ecom) if hosted on GitHub Pages subfolder
+        var pathSegments = path.split('/').filter(Boolean);
+        var repoName = '';
+        var subRoute = '';
+
+        if (window.location.hostname.endsWith('github.io') && pathSegments.length > 0) {
+          repoName = '/' + pathSegments[0];
+          subRoute = pathSegments.slice(1).join('/');
+        } else {
+          subRoute = pathSegments.join('/');
+        }
+
+        var redirectUrl = window.location.origin + repoName + '/#/' + subRoute + search + hash;
+        window.location.replace(redirectUrl);
+      })();
+    </script>
+  </head>
+  <body style="background:#111;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+    <p style="opacity:0.7;font-size:14px;letter-spacing:0.1em;text-transform:uppercase;">Directing to Saanvya Atelier...</p>
+  </body>
+</html>
