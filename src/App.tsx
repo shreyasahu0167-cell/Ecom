@@ -36,10 +36,16 @@ export function AppContent() {
     setPageParams(params || {});
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    // Safely update hash for robust GitHub Pages & subpath support
     if (page === 'admin') {
-      window.history.pushState({}, '', '/saanvya.admin');
+      window.location.hash = '#/saanvya.admin';
     } else if (page === 'home') {
-      window.history.pushState({}, '', '/');
+      window.location.hash = '';
+    } else {
+      const queryString = params && Object.keys(params).length > 0
+        ? `?${new URLSearchParams(params).toString()}`
+        : '';
+      window.location.hash = `#/${page}${queryString}`;
     }
   };
 
@@ -47,15 +53,21 @@ export function AppContent() {
     // Handle initial and browser back/forward URL routing
     const checkRoute = () => {
       const pathname = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.replace('#', '');
+      const hash = window.location.hash.toLowerCase();
       
-      if (pathname.includes('/saanvya.admin') || hash.includes('saanvya.admin') || hash.includes('admin')) {
+      if (
+        pathname.includes('saanvya.admin') ||
+        pathname.endsWith('/admin') ||
+        hash.includes('saanvya.admin') ||
+        hash.includes('admin')
+      ) {
         setCurrentPage('admin');
         return;
       }
 
-      if (hash) {
-        const [page, queryString] = hash.split('?');
+      const cleanHash = window.location.hash.replace(/^#\/?/, '');
+      if (cleanHash) {
+        const [page, queryString] = cleanHash.split('?');
         const urlParams = new URLSearchParams(queryString || '');
         const paramsObj: Record<string, string> = {};
         urlParams.forEach((val, key) => {
@@ -63,6 +75,9 @@ export function AppContent() {
         });
         setCurrentPage(page || 'home');
         setPageParams(paramsObj);
+      } else {
+        setCurrentPage('home');
+        setPageParams({});
       }
     };
 
