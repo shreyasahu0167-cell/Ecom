@@ -20,6 +20,7 @@ import {
   getRegisteredAdmins,
   registerAdmin,
   deleteAdminAccount,
+  clearAllRegisteredAdmins,
   MAX_ADMIN_ACCOUNTS,
   getCurrentAdminSession,
 } from '../../services/adminAuthService';
@@ -103,13 +104,17 @@ export const AdminTeamManagerView: React.FC = () => {
   };
 
   const handleDeleteAdmin = (adminId: string, adminEmail: string) => {
-    if (admins.length <= 1) {
-      alert('Cannot delete the only registered administrator account.');
-      return;
-    }
-
     if (window.confirm(`Are you sure you want to remove administrator access for ${adminEmail}?`)) {
       deleteAdminAccount(adminId);
+      setSuccessMsg(`Administrator access removed for ${adminEmail}.`);
+      refreshAdmins();
+    }
+  };
+
+  const handleDeleteAllAdmins = () => {
+    if (window.confirm('Are you sure you want to delete ALL saved administrator accounts? This will reset all registered admin profiles and clearances.')) {
+      clearAllRegisteredAdmins();
+      setSuccessMsg('All saved administrator accounts have been deleted successfully.');
       refreshAdmins();
     }
   };
@@ -130,18 +135,31 @@ export const AdminTeamManagerView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setIsRegisterOpen(!isRegisterOpen);
-            setErrorMsg(null);
-            setSuccessMsg(null);
-          }}
-          disabled={admins.length >= MAX_ADMIN_ACCOUNTS}
-          className="px-4 py-2.5 bg-antique-gold text-primary font-semibold text-xs uppercase tracking-wider hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>{isRegisterOpen ? 'Close Register Form' : 'Register New Admin'}</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {admins.length > 0 && (
+            <button
+              onClick={handleDeleteAllAdmins}
+              className="px-3.5 py-2.5 bg-red-900/10 border border-red-300 text-red-700 font-semibold text-xs uppercase tracking-wider hover:bg-red-700 hover:text-white transition-colors flex items-center justify-center gap-2"
+              title="Delete all saved administrator accounts"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete All Admins</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setIsRegisterOpen(!isRegisterOpen);
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            disabled={admins.length >= MAX_ADMIN_ACCOUNTS}
+            className="px-4 py-2.5 bg-antique-gold text-primary font-semibold text-xs uppercase tracking-wider hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{isRegisterOpen ? 'Close Register Form' : 'Register New Admin'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -392,15 +410,13 @@ export const AdminTeamManagerView: React.FC = () => {
                   </div>
                 </div>
 
-                {admins.length > 1 && !isCurrent && (
-                  <button
-                    onClick={() => handleDeleteAdmin(admin.id, admin.email)}
-                    className="p-1.5 text-charcoal-text/40 hover:text-red-600 hover:bg-red-50 transition-colors rounded-none"
-                    title="Remove administrator access"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleDeleteAdmin(admin.id, admin.email)}
+                  className="p-1.5 text-charcoal-text/40 hover:text-red-600 hover:bg-red-50 transition-colors rounded-none"
+                  title="Remove administrator access"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="space-y-1.5 pt-3 border-t border-outline-variant/30 text-xs font-sans text-charcoal-text/80">

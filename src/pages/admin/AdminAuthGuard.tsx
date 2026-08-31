@@ -18,6 +18,7 @@ import {
   Send,
   RefreshCw,
   ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import {
   registerAdmin,
@@ -25,6 +26,7 @@ import {
   getAdminCount,
   getRegisteredAdmins,
   setAdminSession,
+  clearAllRegisteredAdmins,
   MAX_ADMIN_ACCOUNTS,
 } from '../../services/adminAuthService';
 import { useAuth } from '../../context/AuthContext';
@@ -85,6 +87,17 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
     setRecoveryCode('');
     setSimulatedOtp(null);
     setAuthMode(mode);
+  };
+
+  const handlePurgeAllAdmins = () => {
+    if (window.confirm('Delete all saved administrator accounts? This will clear all stored credentials and reset available administrator slots.')) {
+      clearAllRegisteredAdmins();
+      setAdminCount(0);
+      setEmail('');
+      setPassword('');
+      setSuccessMsg('All saved administrator accounts deleted.');
+      setErrorMsg(null);
+    }
   };
 
   const handleAdminSendRecovery = async (e: React.FormEvent) => {
@@ -305,13 +318,27 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
             Atelier Admin Portal
           </h1>
           
-          {/* Admin Quota Indicator */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#141414] border border-[#333333] text-[10px] font-sans text-ivory-base/70">
-            <Shield className="w-3 h-3 text-antique-gold" />
-            <span>Admin Capacity: </span>
-            <strong className="text-antique-gold font-mono font-semibold">
-              {adminCount} / {MAX_ADMIN_ACCOUNTS} Active
-            </strong>
+          {/* Admin Quota Indicator & Clear Option */}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#141414] border border-[#333333] text-[10px] font-sans text-ivory-base/70">
+              <Shield className="w-3 h-3 text-antique-gold" />
+              <span>Admin Capacity: </span>
+              <strong className="text-antique-gold font-mono font-semibold">
+                {adminCount} / {MAX_ADMIN_ACCOUNTS} Active
+              </strong>
+            </div>
+
+            {adminCount > 0 && (
+              <button
+                type="button"
+                onClick={handlePurgeAllAdmins}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-950/60 border border-red-800/80 text-[10px] font-sans text-red-300 hover:bg-red-900 hover:text-white transition-colors"
+                title="Delete all saved administrator accounts"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Delete All Saved Admins</span>
+              </button>
+            )}
           </div>
         </div>
 

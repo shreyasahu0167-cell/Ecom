@@ -246,11 +246,30 @@ export function logoutAdmin(): void {
   localStorage.removeItem(PERSISTENT_SESSION_KEY);
 }
 
+export function clearAllRegisteredAdmins(): void {
+  try {
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    localStorage.removeItem(PERSISTENT_SESSION_KEY);
+    localStorage.removeItem('saanvya_demo_session');
+    sessionStorage.removeItem(CURRENT_SESSION_KEY);
+    sessionStorage.removeItem('saanvya_admin_auth');
+    sessionStorage.removeItem('saanvya_demo_reset_code');
+    sessionStorage.removeItem('saanvya_demo_reset_email');
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function deleteAdminAccount(adminId: string): boolean {
   const admins = getRegisteredAdmins();
   const filtered = admins.filter(a => a.id !== adminId);
   if (filtered.length !== admins.length) {
     saveRegisteredAdmins(filtered);
+    // If the active admin was deleted, clear session
+    const current = getCurrentAdminSession();
+    if (current && current.id === adminId) {
+      logoutAdmin();
+    }
     return true;
   }
   return false;
