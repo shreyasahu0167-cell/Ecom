@@ -29,9 +29,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate Supabase deployment environment
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Build halted: Missing production Supabase credentials. You must define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in GitHub Repository Secrets/Variables."
+            exit 1
+          fi
+
       - name: Build project
         env:
-          VITE_DEMO_MODE: "true"
+          VITE_DEMO_MODE: "false"
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Upload artifact
