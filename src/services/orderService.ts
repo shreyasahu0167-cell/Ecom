@@ -236,7 +236,8 @@ export async function createOrder(
   const shippingInr =
     rawSubtotal >= settings.freeShippingThresholdInr ? 0 : settings.standardShippingFeeInr;
   const totalInr = rawSubtotal + taxInr + shippingInr;
-  const sampleOrderNumber = `SNV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const currentYear = new Date().getFullYear();
+  const sampleOrderNumber = `SNV-${currentYear}-${Math.floor(1000 + Math.random() * 9000)}`;
   const sampleOrderId = `ord-${Date.now()}`;
 
   const demoOrderRecord: Order = {
@@ -327,16 +328,30 @@ export async function fetchOrderDetails(orderId: string): Promise<Order | null> 
       return null;
     }
 
-    const { data: o, error } = await supabase
+    // Sanitize orderId: allow only alphanumeric characters, hyphens, and underscores
+    const sanitizedId = orderId.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!sanitizedId) {
+      return null;
+    }
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sanitizedId);
+
+    let query = supabase
       .from('orders')
       .select(`
         id, order_number, user_id, customer_email, customer_phone, shipping_address,
         billing_address, subtotal_inr, tax_inr, shipping_inr, total_inr, status,
         payment_status, payment_method, payment_reference_id, notes, created_at,
         order_items (*)
-      `)
-      .or(`id.eq.${orderId},order_number.eq.${orderId}`)
-      .maybeSingle();
+      `);
+
+    if (isUuid) {
+      query = query.or(`id.eq.${sanitizedId},order_number.eq.${sanitizedId}`);
+    } else {
+      query = query.eq('order_number', sanitizedId);
+    }
+
+    const { data: o, error } = await query.maybeSingle();
 
     if (error || !o) {
       return null;

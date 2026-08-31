@@ -266,7 +266,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
             <p className="font-serif italic text-sm text-charcoal-text mb-1">
               "The modern dialogue of Indian heritage and restrained luxury."
             </p>
-            <p className="text-[11px]">Saanvya Atelier • Mumbai</p>
+            <p className="text-[11px]">Saanvya Atelier • Indian Couture</p>
           </div>
         </div>
       )}

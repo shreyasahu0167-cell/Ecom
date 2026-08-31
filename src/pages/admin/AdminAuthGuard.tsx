@@ -620,7 +620,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                   autoComplete="off"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder="e.g. Shreya Sahu (Creative Director)"
+                  placeholder="e.g. Atelier Administrator"
                   className="w-full pl-9 pr-4 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
                 />
               </div>
@@ -664,7 +664,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                   autoComplete="new-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="e.g. Saanvya@2026"
+                  placeholder="e.g. SaanvyaAdmin@Secure1"
                   className="w-full pl-9 pr-10 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
                 />
                 <button

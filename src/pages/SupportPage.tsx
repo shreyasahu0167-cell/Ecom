@@ -23,9 +23,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Made-to-Order Timelines & Production',
       content: DEMO_POLICIES.madeToOrderTimeline,
       bulletPoints: [
-        'Standard bespoke couture takes 4 to 6 weeks from measurement confirmation.',
-        'Ready-to-wear pieces ship within 3-5 business days.',
-        'Expedited bridal production available on special request subject to master craftsman capacity.',
+        'Production schedules and lead times to be confirmed by Saanvya.',
+        'Ready-to-wear dispatch schedules to be confirmed by Saanvya.',
+        'Expedited order feasibility to be confirmed upon consultation.',
       ],
     },
     {
@@ -34,30 +34,30 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Sizing, Fittings & Alterations',
       content: DEMO_POLICIES.alterationPolicy,
       bulletPoints: [
-        'Complimentary first fitting adjustment within 14 days of order receipt.',
-        'Generous 2-3 inches of fabric seam allowance built into blouses and waistbands for future alterations.',
-        'Clients may provide personalized measurements online or book an atelier fitting session.',
+        'Fitting adjustments and alteration windows to be confirmed by Saanvya.',
+        'Custom measurement specifications and seam allowances to be confirmed by Saanvya.',
+        'Atelier fitting appointment guidelines to be confirmed by Saanvya.',
       ],
     },
     {
       id: 'shipping',
       icon: Truck,
-      title: 'Insured Shipping & Logistics (INR)',
+      title: 'Shipping & Logistics',
       content: DEMO_POLICIES.shippingTerms,
       bulletPoints: [
-        'Complimentary insured courier service on domestic orders above ₹15,000.',
-        'Flat ₹500 standard delivery fee on orders below ₹15,000.',
-        'Delivered in signature humidity-resistant garment bags with satin hangers.',
+        'Shipping partners, dispatch zones, and rates to be confirmed by Saanvya.',
+        'Packaging and courier insurance policies to be confirmed by Saanvya.',
+        'Tracking and delivery timelines to be confirmed by Saanvya.',
       ],
     },
     {
       id: 'returns',
       icon: RotateCcw,
-      title: 'Returns & Concierge Adjustments',
+      title: 'Returns & Adjustments',
       content: DEMO_POLICIES.returnsCancellation,
       bulletPoints: [
-        'Made-to-measure and tailored garments are eligible for complimentary size alterations or store credit.',
-        'Inquiries can be coordinated with our concierge team within 7 days of package delivery.',
+        'Return, exchange, and alteration eligibility to be confirmed by Saanvya.',
+        'Client support coordination procedures to be confirmed by Saanvya.',
       ],
     },
     {
@@ -66,9 +66,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Payment Methods & Currency',
       content: DEMO_POLICIES.paymentNotice,
       bulletPoints: [
-        'All prices are strictly denominated in Indian Rupees (INR ₹).',
-        'We support UPI, Cards, Net Banking, and Direct Bank Wire transfers.',
-        'All orders receive formal GST compliant invoices with complete tax breakdown.',
+        'All prices are denominated in Indian Rupees (INR ₹).',
+        'Accepted payment gateways, cards, and direct methods to be confirmed by Saanvya.',
+        'Taxation and formal invoicing terms to be confirmed by Saanvya.',
       ],
     },
   ];
@@ -85,7 +85,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
             Support & Policies
           </h1>
           <p className="font-sans text-xs sm:text-sm text-charcoal-text/70">
-            Learn more about our bespoke crafting schedules, worldwide insured delivery, and fitting services.
+            Overview of sample ordering policies, sizing consultations, and customer service guidelines.
           </p>
         </div>
 
