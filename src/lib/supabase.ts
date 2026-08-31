@@ -1,33 +1,24 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gdrsakejkfcfaomkjkaz.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_Um0GKnc4Qj2xFJqhJZCZmQ_hbd8juXC';
+const DEFAULT_SUPABASE_URL = 'https://gdrsakejkfcfaomkjkaz.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Um0GKnc4Qj2xFJqhJZCZmQ_hbd8juXC';
 
-export const isSupabaseConfigured: boolean = Boolean(
-  supabaseUrl && 
-  supabaseAnonKey && 
-  supabaseUrl !== 'https://your-project.supabase.co' && 
-  !supabaseUrl.includes('placeholder')
-);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
-export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
-    })
-  : null;
+export const isSupabaseConfigured: boolean = true;
+
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
 
 /**
- * Returns the active Supabase client or throws if invoked in production mode when not configured.
+ * Returns the active Supabase client.
  */
 export function getSupabase(): SupabaseClient {
-  if (!supabase) {
-    throw new Error(
-      'Supabase client is not initialized. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.'
-    );
-  }
   return supabase;
 }

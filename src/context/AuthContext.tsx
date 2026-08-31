@@ -104,23 +104,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signIn = async (email: string, password: string) => {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!supabase) {
       throw new Error(
-        'Supabase is not configured. Use demo login or set VITE_SUPABASE_URL in your .env file.'
+        'Supabase client is not available. Please verify credentials.'
       );
     }
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setIsLoading(false);
       throw error;
     }
+
+    if (data?.user) {
+      setUser(data.user);
+      await fetchUserProfile(data.user.id, data.user.email || email);
+    }
+    setIsLoading(false);
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    if (!isSupabaseConfigured || !supabase) {
+    if (!supabase) {
       throw new Error(
-        'Supabase is not configured. Set VITE_SUPABASE_URL in your .env file to enable live sign-up.'
+        'Supabase client is not available. Please verify credentials.'
       );
     }
     setIsLoading(true);
@@ -138,15 +144,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (data.user) {
-      // Create initial profile record
-      await supabase.from('profiles').insert([
-        {
-          id: data.user.id,
-          email,
-          full_name: fullName,
-          role: 'customer',
-        },
-      ]);
+      // Set active client profile immediately
+      setProfile({
+        id: data.user.id,
+        email,
+        fullName: fullName || email.split('@')[0],
+        role: 'customer',
+      });
+
+      // Attempt to upsert into profiles database table if present
+      try {
+        await supabase.from('profiles').upsert([
+          {
+            id: data.user.id,
+            email,
+            full_name: fullName,
+            role: 'customer',
+          },
+        ]);
+      } catch (insertErr) {
+        console.warn('Profiles table sync:', insertErr);
+      }
     }
     setIsLoading(false);
   };
