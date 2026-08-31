@@ -6,13 +6,11 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. Create User Profiles & Role Management
-CREATE TYPE user_role AS ENUM ('customer', 'admin');
-
+-- 2. Create User Profiles Table
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  role user_role NOT NULL DEFAULT 'customer',
+  role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'admin')),
   full_name TEXT,
   phone TEXT,
   saved_addresses JSONB DEFAULT '[]'::jsonb,
@@ -68,26 +66,6 @@ CREATE TABLE IF NOT EXISTS public.product_variants (
 );
 
 -- 6. Orders Table
-CREATE TYPE order_status AS ENUM (
-  'PAYMENT_PENDING',
-  'AWAITING_VERIFICATION',
-  'CONFIRMED',
-  'IN_PRODUCTION',
-  'QUALITY_CHECK',
-  'READY_FOR_DISPATCH',
-  'SHIPPED',
-  'DELIVERED',
-  'CANCELLED'
-);
-
-CREATE TYPE payment_status AS ENUM (
-  'PENDING',
-  'PROCESSING',
-  'CAPTURED',
-  'FAILED',
-  'REFUNDED'
-);
-
 CREATE TABLE IF NOT EXISTS public.orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number TEXT NOT NULL UNIQUE,
@@ -100,8 +78,24 @@ CREATE TABLE IF NOT EXISTS public.orders (
   tax_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (tax_inr >= 0),
   shipping_inr NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (shipping_inr >= 0),
   total_inr NUMERIC(12, 2) NOT NULL CHECK (total_inr >= 0),
-  status order_status NOT NULL DEFAULT 'PAYMENT_PENDING',
-  payment_status payment_status NOT NULL DEFAULT 'PENDING',
+  status TEXT NOT NULL DEFAULT 'PAYMENT_PENDING' CHECK (status IN (
+    'PAYMENT_PENDING',
+    'AWAITING_VERIFICATION',
+    'CONFIRMED',
+    'IN_PRODUCTION',
+    'QUALITY_CHECK',
+    'READY_FOR_DISPATCH',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED'
+  )),
+  payment_status TEXT NOT NULL DEFAULT 'PENDING' CHECK (payment_status IN (
+    'PENDING',
+    'PROCESSING',
+    'CAPTURED',
+    'FAILED',
+    'REFUNDED'
+  )),
   payment_method TEXT NOT NULL,
   payment_reference_id TEXT,
   notes TEXT,
@@ -165,51 +159,67 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Profiles RLS
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
 CREATE POLICY "Users can read own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile"
+  ON public.profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
 -- Categories RLS
+DROP POLICY IF EXISTS "Public can read categories" ON public.categories;
 CREATE POLICY "Public can read categories"
   ON public.categories FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage categories" ON public.categories;
 CREATE POLICY "Admins can manage categories"
   ON public.categories FOR ALL
   USING (public.is_admin());
 
 -- Products RLS
+DROP POLICY IF EXISTS "Public can read active products" ON public.products;
 CREATE POLICY "Public can read active products"
   ON public.products FOR SELECT
   USING (is_active = true OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can manage products" ON public.products;
 CREATE POLICY "Admins can manage products"
   ON public.products FOR ALL
   USING (public.is_admin());
 
 -- Product Variants RLS
+DROP POLICY IF EXISTS "Public can read active product variants" ON public.product_variants;
 CREATE POLICY "Public can read active product variants"
   ON public.product_variants FOR SELECT
   USING (is_active = true OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can manage product variants" ON public.product_variants;
 CREATE POLICY "Admins can manage product variants"
   ON public.product_variants FOR ALL
   USING (public.is_admin());
 
 -- Orders RLS
+DROP POLICY IF EXISTS "Customers can read own orders" ON public.orders;
 CREATE POLICY "Customers can read own orders"
   ON public.orders FOR SELECT
   USING (auth.uid() = user_id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can manage orders" ON public.orders;
 CREATE POLICY "Admins can manage orders"
   ON public.orders FOR ALL
   USING (public.is_admin());
 
 -- Order Items RLS
+DROP POLICY IF EXISTS "Customers can read own order items" ON public.order_items;
 CREATE POLICY "Customers can read own order items"
   ON public.order_items FOR SELECT
   USING (
@@ -220,15 +230,18 @@ CREATE POLICY "Customers can read own order items"
     )
   );
 
+DROP POLICY IF EXISTS "Admins can manage order items" ON public.order_items;
 CREATE POLICY "Admins can manage order items"
   ON public.order_items FOR ALL
   USING (public.is_admin());
 
 -- Atelier Appointments RLS
+DROP POLICY IF EXISTS "Public can create appointments" ON public.atelier_appointments;
 CREATE POLICY "Public can create appointments"
   ON public.atelier_appointments FOR INSERT
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admins can view and manage appointments" ON public.atelier_appointments;
 CREATE POLICY "Admins can view and manage appointments"
   ON public.atelier_appointments FOR ALL
   USING (public.is_admin());
@@ -410,3 +423,116 @@ BEGIN
   RETURN v_created_order;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- ====================================================================
+-- SEED DATA (Categories & Signature Couture Ensembles)
+-- ====================================================================
+
+INSERT INTO public.categories (id, name, slug, description, sort_order)
+VALUES 
+  ('a1111111-1111-1111-1111-111111111111', 'Bridal Lehengas', 'bridal-lehengas', 'Handcrafted royal wedding ensembles featuring zardozi, pita work, and real silver zari.', 1),
+  ('a2222222-2222-2222-2222-222222222222', 'Artisanal Sarees', 'artisanal-sarees', 'Handwoven pure Kanjivaram and Banarasi silks draped with heirloom borders.', 2),
+  ('a3333333-3333-3333-3333-333333333333', 'Contemporary Anarkalis', 'contemporary-anarkalis', 'Floor-length flared silhouettes tailored with lightweight organza and dabka embroidery.', 3),
+  ('a4444444-4444-4444-4444-444444444444', 'Luxury Pret & Kurta Sets', 'ready-to-wear', 'Refined festive silhouettes designed for effortless intimate celebrations and sangeets.', 4),
+  ('a5555555-5555-5555-5555-555555555555', 'Menswear Sherwanis', 'menswear-sherwanis', 'Regal handcrafted sherwanis with bespoke achkans and raw silk stoles.', 5)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Seed Products
+INSERT INTO public.products (
+  id,
+  category_id,
+  title,
+  slug,
+  collection_name,
+  description,
+  craft_details,
+  fabric_specs,
+  care_instructions,
+  base_price_inr,
+  images,
+  is_active,
+  is_featured,
+  is_new_arrival,
+  is_bespoke_available
+) VALUES (
+  'b1111111-1111-1111-1111-111111111111',
+  'a1111111-1111-1111-1111-111111111111',
+  'Padmavati Royal Crimson Bridal Lehenga',
+  'padmavati-crimson-bridal-lehenga',
+  'Noor-e-Khaas Bridal 2026',
+  'A museum-grade bridal lehenga featuring 16-kalidar velvet flared panels, hand-embroidered with 24k gold-plated zardozi wire, authentic basra pearl fringe, and antique dabka peacocks.',
+  ARRAY['16-Kalidar hand-cut velvet silhouette', 'Authentic micro-dabka and salma work', 'Double dupatta draping set in tissue organza and raw silk'],
+  'Pure Mulberry Silk Velvet, Pure Silk Organza, Gold Zari Wire',
+  'Strictly Dry Clean by Certified Luxury Garment Specialists. Store in muslin cotton cover.',
+  185000.00,
+  ARRAY['https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1200', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1200'],
+  true,
+  true,
+  false,
+  true
+), (
+  'b2222222-2222-2222-2222-222222222222',
+  'a2222222-2222-2222-2222-222222222222',
+  'Kashi Heritage Gold Tissue Banarasi Saree',
+  'kashi-heritage-gold-tissue-banarasi-saree',
+  'Varanasi Weaves Archive',
+  'Woven on traditional pit-looms in Varanasi across 45 artisan days. Features an intricate Kadwa floral jaal in pure silver-dipped gold zari with contrast vermillion borders.',
+  ARRAY['Authentic Kadwa handloom technique', 'Pure gold zari meenakari accents', 'Includes unstitched embroidered blouse fabric'],
+  '100% Pure Katan Silk with Real Zari',
+  'Dry Clean Only. Roll inside muslin fabric. Avoid perfume direct contact.',
+  98000.00,
+  ARRAY['https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&q=80&w=1200'],
+  true,
+  true,
+  true,
+  false
+), (
+  'b3333333-3333-3333-3333-333333333333',
+  'a3333333-3333-3333-3333-333333333333',
+  'Mehrunissa Emerald Flared Anarkali Gown',
+  'mehrunissa-emerald-anarkali-gown',
+  'Gulzar Festive Collection',
+  'Floor-length emerald green raw silk anarkali crafted with delicate gota patti, resham floral bootis, and paired with a hand-painted Pichwai-inspired tissue dupatta.',
+  ARRAY['Gota patti geometric neck detailing', 'Voluminous flare with internal cancan canvas', 'Handmade latkan tassels'],
+  'Raw Chanderi Silk and Pure Organza',
+  'Dry clean only.',
+  65000.00,
+  ARRAY['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&q=80&w=1200'],
+  true,
+  true,
+  true,
+  true
+), (
+  'b4444444-4444-4444-4444-444444444444',
+  'a4444444-4444-4444-4444-444444444444',
+  'Gul-e-Maryam Powder Blue Kurta Ensemble',
+  'gul-e-maryam-powder-blue-kurta-set',
+  'Modern Pret Line',
+  'A modern silhouette tailored in powder blue Chanderi silk with delicate scalloped organza trims, tonal beadwork, and matched straight trousers.',
+  ARRAY['Tone-on-tone fine resham threadwork', 'Scalloped organza cuffs and hemline', 'Lined with soft mulmul cotton'],
+  'Chanderi Silk, Mulmul Cotton Lining',
+  'Dry clean or gentle handwash separately in cold water.',
+  32000.00,
+  ARRAY['https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&q=80&w=1200'],
+  true,
+  false,
+  true,
+  true
+)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Seed Product Variants
+INSERT INTO public.product_variants (product_id, sku, size, color, color_hex, additional_price_inr, stock_quantity)
+VALUES
+  ('b1111111-1111-1111-1111-111111111111', 'SNV-PAD-CRM-S', 'S', 'Royal Crimson', '#800020', 0, 4),
+  ('b1111111-1111-1111-1111-111111111111', 'SNV-PAD-CRM-M', 'M', 'Royal Crimson', '#800020', 0, 5),
+  ('b1111111-1111-1111-1111-111111111111', 'SNV-PAD-CRM-L', 'L', 'Royal Crimson', '#800020', 0, 3),
+  ('b1111111-1111-1111-1111-111111111111', 'SNV-PAD-CRM-CUS', 'Custom', 'Royal Crimson', '#800020', 15000, 10),
+  ('b2222222-2222-2222-2222-222222222222', 'SNV-KSH-GLD-FREE', 'Free Size', 'Antique Gold Tissue', '#C5A059', 0, 8),
+  ('b3333333-3333-3333-3333-333333333333', 'SNV-MEH-EMR-S', 'S', 'Emerald Green', '#0B5345', 0, 6),
+  ('b3333333-3333-3333-3333-333333333333', 'SNV-MEH-EMR-M', 'M', 'Emerald Green', '#0B5345', 0, 7),
+  ('b3333333-3333-3333-3333-333333333333', 'SNV-MEH-EMR-L', 'L', 'Emerald Green', '#0B5345', 0, 4),
+  ('b4444444-4444-4444-4444-444444444444', 'SNV-GUL-BLU-S', 'S', 'Powder Blue', '#B0E0E6', 0, 10),
+  ('b4444444-4444-4444-4444-444444444444', 'SNV-GUL-BLU-M', 'M', 'Powder Blue', '#B0E0E6', 0, 12),
+  ('b4444444-4444-4444-4444-444444444444', 'SNV-GUL-BLU-L', 'L', 'Powder Blue', '#B0E0E6', 0, 8)
+ON CONFLICT (sku) DO NOTHING;
