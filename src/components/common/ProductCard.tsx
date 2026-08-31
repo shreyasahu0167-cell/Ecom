@@ -38,11 +38,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-          {product.isSampleItem && (
-            <span className="bg-charcoal-text/90 backdrop-blur-sm text-ivory-base text-[10px] font-sans font-medium px-2 py-0.5 tracking-wider uppercase">
-              Sample Item
-            </span>
-          )}
           {product.isNewArrival && (
             <span className="bg-antique-gold text-primary text-[10px] font-sans font-semibold px-2 py-0.5 tracking-wider uppercase">
               New Addition

@@ -164,7 +164,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
                 <span>Atelier Next Steps</span>
               </div>
               <p className="text-ivory-base/80 leading-relaxed">
-                [Sample Fulfillment Notice]: Your ensemble order is queued for craftsman allocation and fabric cutting. Our concierge team will reach out via WhatsApp/email for custom measurement confirmation.
+                Your ensemble order is queued for craftsman allocation and fabric cutting. Our concierge team will reach out via WhatsApp/email for custom measurement confirmation.
               </p>
             </div>
 

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import { DemoBanner } from './components/common/DemoBanner';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { CartDrawer } from './components/common/CartDrawer';
 
-// Pages
+// Client Storefront Pages
 import { HomePage } from './pages/HomePage';
 import { ShopPage } from './pages/ShopPage';
 import { CollectionsPage } from './pages/CollectionsPage';
@@ -17,22 +16,44 @@ import { StoryPage } from './pages/StoryPage';
 import { VisitStorePage } from './pages/VisitStorePage';
 import { SupportPage } from './pages/SupportPage';
 import { AuthPage } from './pages/AuthPage';
-import { AdminPage } from './pages/AdminPage';
+
+// Isolated Admin Portal
+import { AdminPortal } from './pages/admin/AdminPortal';
 
 export function AppContent() {
-  const [currentPage, setCurrentPage] = useState<string>('home');
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    const pathname = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    if (pathname.includes('/saanvya.admin') || hash.includes('saanvya.admin') || hash.includes('admin')) {
+      return 'admin';
+    }
+    return 'home';
+  });
   const [pageParams, setPageParams] = useState<any>({});
 
   const handleNavigate = (page: string, params?: any) => {
     setCurrentPage(page);
     setPageParams(params || {});
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (page === 'admin') {
+      window.history.pushState({}, '', '/saanvya.admin');
+    } else if (page === 'home') {
+      window.history.pushState({}, '', '/');
+    }
   };
 
   useEffect(() => {
-    // Handle browser back/forward or simple URL hash
-    const handleHashChange = () => {
+    // Handle initial and browser back/forward URL routing
+    const checkRoute = () => {
+      const pathname = window.location.pathname.toLowerCase();
       const hash = window.location.hash.replace('#', '');
+      
+      if (pathname.includes('/saanvya.admin') || hash.includes('saanvya.admin') || hash.includes('admin')) {
+        setCurrentPage('admin');
+        return;
+      }
+
       if (hash) {
         const [page, queryString] = hash.split('?');
         const urlParams = new URLSearchParams(queryString || '');
@@ -45,9 +66,20 @@ export function AppContent() {
       }
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    checkRoute();
+
+    window.addEventListener('hashchange', checkRoute);
+    window.addEventListener('popstate', checkRoute);
+    return () => {
+      window.removeEventListener('hashchange', checkRoute);
+      window.removeEventListener('popstate', checkRoute);
+    };
   }, []);
+
+  // Isolated Admin Route: Render completely independent of main storefront layout
+  if (currentPage === 'admin') {
+    return <AdminPortal onExit={() => handleNavigate('home')} />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -84,8 +116,6 @@ export function AppContent() {
       case 'auth':
       case 'account':
         return <AuthPage onNavigate={handleNavigate} />;
-      case 'admin':
-        return <AdminPage onNavigate={handleNavigate} />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }
@@ -93,7 +123,6 @@ export function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-charcoal-text selection:bg-antique-gold/20 selection:text-primary">
-      <DemoBanner />
       <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
       <main className="flex-1">
         {renderPage()}

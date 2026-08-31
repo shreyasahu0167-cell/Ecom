@@ -97,48 +97,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
             {isRegister ? 'Create Couture Account' : 'Account Access'}
           </h1>
           <p className="font-sans text-xs text-charcoal-text/70">
-            {isSupabaseConfigured
-              ? 'Secure Supabase Auth with Row Level Security'
-              : 'Demo Mode Active — Explore with sample profiles'}
+            Sign in to access your bespoke couture wardrobe, measurements, and order history.
           </p>
         </div>
-
-        {/* Demo Mode Quick Access Pills (Only shown when demo mode is active) */}
-        {!isSupabaseConfigured && (
-          <div className="p-5 bg-surface-container border border-antique-gold/40 space-y-3 text-xs font-sans">
-            <div className="flex items-center gap-1.5 text-antique-gold font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Demo Quick-Access (Supabase Not Connected)</span>
-            </div>
-            <p className="text-[11px] text-charcoal-text/70">
-              You can explore the admin portal or client account with demo-safe sample sessions:
-            </p>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  demoUserLogin('admin');
-                  onNavigate('admin');
-                }}
-                className="p-2.5 bg-primary text-ivory-base text-center font-medium hover:bg-charcoal-text transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Shield className="w-3.5 h-3.5 text-antique-gold" />
-                <span>Demo Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  demoUserLogin('customer');
-                  onNavigate('shop');
-                }}
-                className="p-2.5 bg-surface-container-low border border-outline-variant/60 text-charcoal-text text-center hover:border-charcoal-text transition-colors flex items-center justify-center gap-1.5"
-              >
-                <User className="w-3.5 h-3.5 text-antique-gold" />
-                <span>Demo Client</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Live Supabase Auth Form */}
         <div className="bg-surface-container-low p-8 border border-outline-variant/30 space-y-6">

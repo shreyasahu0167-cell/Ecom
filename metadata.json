@@ -1,0 +1,6 @@
+{
+  "name": "SAANVYA | Modern Indian Couture",
+  "description": "Saanvya Modern Indian Couture — Bespoke bridal wear, artisanal lehengas, sarees and handcrafted occasion wear.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -63,9 +63,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existingIndex = prev.findIndex(item => item.variantId === newItem.variantId);
       if (existingIndex > -1) {
         const updated = [...prev];
+        const maxStock = newItem.stockAvailable ?? 99;
         const newQty = Math.min(
           updated[existingIndex].quantity + newItem.quantity,
-          newItem.stockAvailable
+          maxStock
         );
         updated[existingIndex] = {
           ...updated[existingIndex],
@@ -91,7 +92,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart(prev =>
       prev.map(item => {
         if (item.variantId === variantId) {
-          const validQty = Math.min(quantity, item.stockAvailable);
+          const maxStock = item.stockAvailable ?? 99;
+          const validQty = Math.min(quantity, maxStock);
           return { ...item, quantity: validQty };
         }
         return item;

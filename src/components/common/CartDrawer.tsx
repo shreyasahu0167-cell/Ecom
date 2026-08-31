@@ -140,7 +140,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                          disabled={item.quantity >= item.stockAvailable}
+                          disabled={item.stockAvailable !== undefined && item.quantity >= item.stockAvailable}
                           className="p-1 hover:bg-surface-container text-charcoal-text disabled:opacity-30"
                           title="Increase quantity"
                         >

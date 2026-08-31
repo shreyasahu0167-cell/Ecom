@@ -32,8 +32,8 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
   const [pincode, setPincode] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<
-    'RAZORPAY_SCAFFOLD' | 'CASHFREE_SCAFFOLD' | 'BANK_TRANSFER_VERIFICATION' | 'DEMO_SUBMISSION'
-  >(isSupabaseConfigured ? 'RAZORPAY_SCAFFOLD' : 'DEMO_SUBMISSION');
+    'ONLINE_PAYMENT' | 'RAZORPAY_SCAFFOLD' | 'CASHFREE_SCAFFOLD' | 'BANK_TRANSFER_VERIFICATION' | 'DEMO_SUBMISSION'
+  >('ONLINE_PAYMENT');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -135,11 +135,6 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
             <div className="bg-surface-container-low p-6 border border-outline-variant/30 space-y-4">
               <h2 className="font-serif text-xl text-charcoal-text flex items-center justify-between">
                 <span>1. Contact & Communication</span>
-                {!profile && (
-                  <span className="text-[11px] font-sans font-normal text-antique-gold">
-                    Guest Mode Active
-                  </span>
-                )}
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
@@ -264,7 +259,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
               </div>
             </div>
 
-            {/* 3. Payment Method (Prepared Scaffold) */}
+            {/* 3. Payment Method */}
             <div className="bg-surface-container-low p-6 border border-outline-variant/30 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-xl text-charcoal-text">
@@ -276,27 +271,23 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                 </span>
               </div>
 
-              <p className="text-[11px] font-sans text-charcoal-text/70 italic">
-                [Payment Architecture Notice]: Live merchant gateways are ready for instant connection upon API key deployment. Order is securely recorded with status 'PAYMENT_PENDING'.
-              </p>
-
               <div className="space-y-3 text-xs font-sans">
                 <label className="flex items-start gap-3 p-3.5 border border-outline-variant/50 bg-background cursor-pointer hover:border-antique-gold">
                   <input
                     type="radio"
                     name="payment"
-                    value="RAZORPAY_SCAFFOLD"
-                    checked={paymentMethod === 'RAZORPAY_SCAFFOLD'}
-                    onChange={() => setPaymentMethod('RAZORPAY_SCAFFOLD')}
+                    value="ONLINE_PAYMENT"
+                    checked={paymentMethod === 'ONLINE_PAYMENT' || paymentMethod === 'RAZORPAY_SCAFFOLD'}
+                    onChange={() => setPaymentMethod('ONLINE_PAYMENT')}
                     className="mt-0.5 accent-primary"
                   />
                   <div>
                     <span className="font-medium text-charcoal-text block flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-antique-gold" />
-                      Razorpay Gateway (UPI, Cards, Net Banking) [Scaffold]
+                      Online Payment (UPI, Credit/Debit Cards, Net Banking)
                     </span>
                     <span className="text-[11px] text-charcoal-text/60">
-                      Standard Indian checkout flow ready for client merchant activation.
+                      Seamless and secure online payment processing in Indian Rupees (INR).
                     </span>
                   </div>
                 </label>
@@ -313,34 +304,13 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                   <div>
                     <span className="font-medium text-charcoal-text block flex items-center gap-2">
                       <Building className="w-4 h-4 text-antique-gold" />
-                      Direct Bank Wire / Concierge Invoice Verification
+                      Direct Bank Wire / Concierge Invoice
                     </span>
                     <span className="text-[11px] text-charcoal-text/60">
-                      Ideal for high-value bridal suites; our concierge contacts you with formal proforma invoice.
+                      Ideal for bespoke bridal ensembles; our concierge contacts you with a formal proforma invoice.
                     </span>
                   </div>
                 </label>
-
-                {!isSupabaseConfigured && (
-                  <label className="flex items-start gap-3 p-3.5 border border-antique-gold/60 bg-antique-gold/10 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="DEMO_SUBMISSION"
-                      checked={paymentMethod === 'DEMO_SUBMISSION'}
-                      onChange={() => setPaymentMethod('DEMO_SUBMISSION')}
-                      className="mt-0.5 accent-primary"
-                    />
-                    <div>
-                      <span className="font-semibold text-charcoal-text block">
-                        Demo Mode Order Placement (Sample Testing)
-                      </span>
-                      <span className="text-[11px] text-charcoal-text/70">
-                        Creates an authentic demo order instance stored locally for UI workflow review.
-                      </span>
-                    </div>
-                  </label>
-                )}
               </div>
             </div>
 

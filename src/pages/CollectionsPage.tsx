@@ -19,7 +19,7 @@ export const CollectionsPage: React.FC<CollectionsPageProps> = ({ onNavigate }) 
             Couture Capsules
           </h1>
           <p className="font-sans text-xs sm:text-sm text-charcoal-text/75 leading-relaxed">
-            [Sample Lookbook Narrative]: Discover curated thematic collections capturing the essence of Indian textile heritage and contemporary silhouette architecture.
+            Discover curated thematic collections capturing the essence of Indian textile heritage and contemporary silhouette architecture.
           </p>
         </div>
 

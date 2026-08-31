@@ -57,7 +57,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </h1>
 
             <p className="font-sans text-sm sm:text-base text-ivory-base/85 leading-relaxed max-w-xl font-light">
-              [Sample Lookbook Narrative]: Hand-embroidered bridal silhouettes, liquid organzas, and heirloom textiles woven for contemporary celebrations.
+              Hand-embroidered bridal silhouettes, liquid organzas, and heirloom textiles woven for contemporary celebrations.
             </p>
 
             <div className="pt-4 flex flex-wrap items-center gap-4">
@@ -158,7 +158,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 Handcrafted for Your Special Day.
               </h2>
               <p className="font-sans text-xs sm:text-sm text-charcoal-text/80 leading-relaxed">
-                [Sample Atelier Narrative]: Every bridal silhouette undergoes hundreds of hours of delicate zardozi needlework, custom silhouette calibration, and individual canvas shaping.
+                Every bridal silhouette undergoes hundreds of hours of delicate zardozi needlework, custom silhouette calibration, and individual canvas shaping.
               </p>
 
               <div className="space-y-3 pt-2 text-xs font-sans text-charcoal-text/90">
@@ -229,7 +229,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* 5. CRAFT ETHOS & ATELIER VALUES (Neutral Demo Safe) */}
+      {/* 5. CRAFT ETHOS & ATELIER VALUES */}
       <section className="py-20 bg-primary text-ivory-base border-t border-antique-gold/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
@@ -240,7 +240,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               Conscious Luxury & Textile Preservation
             </h2>
             <p className="font-sans text-xs text-ivory-base/70">
-              [Sample Ethos Notice]: Grounded in ethical artisan collaborations and architectural silhouettes.
+              Grounded in ethical artisan collaborations and architectural silhouettes.
             </p>
           </div>
 
@@ -249,7 +249,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               <Compass className="w-6 h-6 text-antique-gold mb-2" />
               <h3 className="font-serif text-xl text-ivory-base">Heritage Handlooms</h3>
               <p className="font-sans text-xs text-ivory-base/70 leading-relaxed">
-                [Sample Spec]: Genuine pit-loom mulberry silks, Kanchipuram zari, and pure Chanderi textiles crafted without industrial synthetic blends.
+                Genuine pit-loom mulberry silks, Kanchipuram zari, and pure Chanderi textiles crafted without industrial synthetic blends.
               </p>
             </div>
 
@@ -257,7 +257,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               <Scissors className="w-6 h-6 text-antique-gold mb-2" />
               <h3 className="font-serif text-xl text-ivory-base">Bespoke Fit Precision</h3>
               <p className="font-sans text-xs text-ivory-base/70 leading-relaxed">
-                [Sample Spec]: Individual body mapping and custom measurements ensure sculpted comfort and balanced weight distribution for long festive hours.
+                Individual body mapping and custom measurements ensure sculpted comfort and balanced weight distribution for long festive hours.
               </p>
             </div>
 
@@ -265,7 +265,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               <Award className="w-6 h-6 text-antique-gold mb-2" />
               <h3 className="font-serif text-xl text-ivory-base">Transparent Pricing (INR)</h3>
               <p className="font-sans text-xs text-ivory-base/70 leading-relaxed">
-                [Sample Spec]: Complete clarity in pricing with zero hidden duties or fabricated discounts, strictly adhering to authentic Indian haute couture standards.
+                Complete clarity in pricing with zero hidden duties or fabricated markups, strictly adhering to authentic Indian haute couture standards.
               </p>
             </div>
           </div>

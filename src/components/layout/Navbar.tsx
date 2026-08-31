@@ -49,8 +49,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
       <div className="bg-primary text-ivory-base/80 text-[11px] font-sans py-1.5 px-4 hidden md:flex items-center justify-between border-b border-antique-gold/20">
         <div className="flex items-center gap-3">
           <span className="text-antique-gold font-medium">Bespoke Atelier Consultations</span>
-          <span className="text-ivory-base/40">•</span>
-          <span>By Appointment in Mumbai (Sample)</span>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -268,7 +266,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
             <p className="font-serif italic text-sm text-charcoal-text mb-1">
               "The modern dialogue of Indian heritage and restrained luxury."
             </p>
-            <p className="text-[11px]">Saanvya Store • Sample Demonstration</p>
+            <p className="text-[11px]">Saanvya Atelier • Mumbai</p>
           </div>
         </div>
       )}

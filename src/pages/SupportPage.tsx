@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import { DEMO_POLICIES } from '../data/demoData';
+import { DEMO_POLICIES, DEMO_STORE_INFO } from '../data/demoData';
 import {
   Clock,
   Scissors,
   Truck,
   RotateCcw,
   CreditCard,
-  Sparkles,
-  HelpCircle,
   ChevronDown,
-  Mail,
-  Phone,
 } from 'lucide-react';
 
 interface SupportPageProps {
@@ -27,9 +23,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Made-to-Order Timelines & Production',
       content: DEMO_POLICIES.madeToOrderTimeline,
       bulletPoints: [
-        'Sample Timeline: Standard bespoke couture takes 4 to 6 weeks from measurement confirmation.',
-        'Sample Timeline: Ready-to-wear pieces ship within 3-5 business days.',
-        'Sample Urgent Services: Expedited bridal production available on special request subject to master craftsman capacity.',
+        'Standard bespoke couture takes 4 to 6 weeks from measurement confirmation.',
+        'Ready-to-wear pieces ship within 3-5 business days.',
+        'Expedited bridal production available on special request subject to master craftsman capacity.',
       ],
     },
     {
@@ -38,9 +34,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Sizing, Fittings & Alterations',
       content: DEMO_POLICIES.alterationPolicy,
       bulletPoints: [
-        'Sample Fitting: Complimentary first fitting adjustment within 14 days of order receipt.',
-        'Sample Margin: 2-3 inches of fabric seam allowance built into blouses and waistbands for future alterations.',
-        'Sample Bespoke: Client may provide personalized measurements online or book an atelier fitting session.',
+        'Complimentary first fitting adjustment within 14 days of order receipt.',
+        'Generous 2-3 inches of fabric seam allowance built into blouses and waistbands for future alterations.',
+        'Clients may provide personalized measurements online or book an atelier fitting session.',
       ],
     },
     {
@@ -49,9 +45,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Insured Shipping & Logistics (INR)',
       content: DEMO_POLICIES.shippingTerms,
       bulletPoints: [
-        'Sample Delivery: Complimentary insured courier service on domestic orders above ₹15,000.',
-        'Sample Delivery: Flat ₹500 standard delivery fee on orders below ₹15,000.',
-        'Sample Packaging: Delivered in signature humidity-resistant garment bags with satin hangers.',
+        'Complimentary insured courier service on domestic orders above ₹15,000.',
+        'Flat ₹500 standard delivery fee on orders below ₹15,000.',
+        'Delivered in signature humidity-resistant garment bags with satin hangers.',
       ],
     },
     {
@@ -60,8 +56,8 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       title: 'Returns & Concierge Adjustments',
       content: DEMO_POLICIES.returnsCancellation,
       bulletPoints: [
-        'Sample Policy: Made-to-measure and tailored garments are eligible for complimentary size alterations or store credit.',
-        'Sample Notice: Inquiries must be raised with our concierge team within 7 days of package delivery.',
+        'Made-to-measure and tailored garments are eligible for complimentary size alterations or store credit.',
+        'Inquiries can be coordinated with our concierge team within 7 days of package delivery.',
       ],
     },
     {
@@ -71,8 +67,8 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
       content: DEMO_POLICIES.paymentNotice,
       bulletPoints: [
         'All prices are strictly denominated in Indian Rupees (INR ₹).',
-        'Prepared architecture supports Razorpay (UPI, Credit/Debit cards, Net Banking) and Direct Bank Wire.',
-        'All orders receive formal GST compliant invoices with valid tax breakdown.',
+        'We support UPI, Cards, Net Banking, and Direct Bank Wire transfers.',
+        'All orders receive formal GST compliant invoices with complete tax breakdown.',
       ],
     },
   ];
@@ -89,7 +85,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
             Support & Policies
           </h1>
           <p className="font-sans text-xs sm:text-sm text-charcoal-text/70">
-            [Demo Notice]: Neutral demo-safe policy placeholders. Official terms and contact details will be verified by the brand.
+            Learn more about our bespoke crafting schedules, worldwide insured delivery, and fitting services.
           </p>
         </div>
 
@@ -158,9 +154,9 @@ export const SupportPage: React.FC<SupportPageProps> = ({ onNavigate }) => {
             >
               Book Atelier Consultation
             </button>
-            <div className="flex items-center justify-between text-ivory-base/70 pt-1 text-[11px]">
-              <span>WhatsApp / Phone: +91 22 0000 0000 (Sample)</span>
-              <span>concierge@saanvya-demo.local</span>
+            <div className="flex flex-wrap items-center justify-between text-ivory-base/70 pt-1 text-[11px] gap-2">
+              <span>Phone: {DEMO_STORE_INFO.phone}</span>
+              <span>{DEMO_STORE_INFO.email}</span>
             </div>
           </div>
         </div>

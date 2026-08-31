@@ -1,6 +1,22 @@
-export type Role = 'customer' | 'admin';
+export type Role = 'customer' | 'admin' | 'CUSTOMER' | 'ADMIN';
 
-export type ProductSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'Custom Measurement';
+export type ProductCategory =
+  | 'bridal'
+  | 'lehengas'
+  | 'sarees'
+  | 'anarkalis'
+  | 'ready-to-wear'
+  | 'accessories';
+
+export type ProductSize =
+  | 'XS'
+  | 'S'
+  | 'M'
+  | 'L'
+  | 'XL'
+  | 'Custom Measurement'
+  | 'One Size'
+  | string;
 
 export interface ProductVariant {
   id: string;
@@ -18,8 +34,8 @@ export interface Product {
   id: string;
   title: string;
   slug: string;
-  category: 'bridal' | 'lehengas' | 'sarees' | 'anarkalis' | 'ready-to-wear' | 'accessories';
-  categoryLabel: string;
+  category: ProductCategory;
+  categoryLabel?: string;
   collectionName?: string;
   description: string;
   craftDetails: string[];
@@ -31,22 +47,27 @@ export interface Product {
   isFeatured?: boolean;
   isNewArrival?: boolean;
   isBespokeAvailable?: boolean;
-  isSampleItem: boolean; // Explicit flag for demo sample distinction
+  isSampleItem?: boolean;
   createdAt?: string;
 }
 
 export interface CartItem {
-  variantId: string;
+  id?: string;
   productId: string;
+  variantId: string;
   title: string;
-  categoryLabel: string;
   sku: string;
   size: ProductSize;
   color: string;
-  image: string;
+  colorHex?: string;
   unitPriceInr: number;
   quantity: number;
-  stockAvailable: number;
+  stockAvailable?: number;
+  image: string;
+  category?: ProductCategory;
+  categoryLabel?: string;
+  collectionName?: string;
+  isBespoke?: boolean;
   customMeasurements?: {
     bust?: string;
     waist?: string;
@@ -59,7 +80,7 @@ export interface CartItem {
 
 export interface ShippingAddress {
   fullName: string;
-  email: string;
+  email?: string;
   phone: string;
   addressLine1: string;
   addressLine2?: string;
@@ -76,6 +97,7 @@ export type OrderStatus =
   | 'IN_PRODUCTION'
   | 'QUALITY_CHECK'
   | 'READY_FOR_DISPATCH'
+  | 'DISPATCHED'
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED';
@@ -84,6 +106,7 @@ export type PaymentStatus =
   | 'PENDING'
   | 'PROCESSING'
   | 'CAPTURED'
+  | 'PAID'
   | 'FAILED'
   | 'REFUNDED';
 
@@ -99,6 +122,7 @@ export interface OrderItem {
   unitPriceInr: number;
   quantity: number;
   totalPriceInr: number;
+  customMeasurements?: Record<string, any>;
 }
 
 export interface Order {
@@ -116,7 +140,7 @@ export interface Order {
   totalInr: number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
-  paymentMethod: 'RAZORPAY_SCAFFOLD' | 'CASHFREE_SCAFFOLD' | 'BANK_TRANSFER_VERIFICATION' | 'DEMO_SUBMISSION';
+  paymentMethod: 'ONLINE_PAYMENT' | 'RAZORPAY_SCAFFOLD' | 'CASHFREE_SCAFFOLD' | 'BANK_TRANSFER_VERIFICATION' | 'DEMO_SUBMISSION';
   paymentReferenceId?: string;
   notes?: string;
   isDemoOrder: boolean;

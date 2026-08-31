@@ -99,7 +99,7 @@ export const VisitStorePage: React.FC<VisitStorePageProps> = ({ onNavigate }) =>
               <div className="flex items-start gap-3 pt-2">
                 <MapPin className="w-4 h-4 text-antique-gold flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold block text-charcoal-text">Location (Sample Placeholder):</span>
+                  <span className="font-semibold block text-charcoal-text">Atelier Address:</span>
                   <span>{DEMO_STORE_INFO.addressLine}</span>
                 </div>
               </div>

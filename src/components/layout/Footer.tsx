@@ -34,7 +34,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
 
             <p className="font-sans text-xs text-ivory-base/70 leading-relaxed max-w-sm pt-2">
-              [Sample Ethos Placeholder]: A tribute to timeless Indian craftsmanship, combining architectural silhouettes, handloom textiles, and subtle metallic needlework for the modern connoisseur.
+              A tribute to timeless Indian craftsmanship, combining architectural silhouettes, handloom textiles, and subtle metallic needlework for the modern connoisseur.
             </p>
 
             <div className="pt-2 flex items-center gap-2 text-xs font-sans text-antique-gold">
@@ -190,19 +190,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('support')}
               className="hover:text-ivory-base transition-colors"
             >
-              Terms of Service (Demo Safe)
+              Terms of Service
             </button>
             <button
               onClick={() => onNavigate('support')}
               className="hover:text-ivory-base transition-colors"
             >
-              Privacy Policy (Demo Safe)
-            </button>
-            <button
-              onClick={() => onNavigate('auth')}
-              className="hover:text-antique-gold transition-colors text-ivory-base/70 font-semibold"
-            >
-              Admin Portal
+              Privacy Policy
             </button>
           </div>
         </div>

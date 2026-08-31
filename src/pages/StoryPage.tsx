@@ -21,7 +21,7 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
           </h1>
 
           <p className="font-sans text-xs sm:text-sm text-charcoal-text/80 leading-relaxed font-light">
-            [Sample Brand Narrative Placeholder]: Saanvya was conceived to celebrate the dialogue between traditional Indian textile arts and refined contemporary tailoring.
+            Saanvya was conceived to celebrate the dialogue between traditional Indian textile arts and refined contemporary tailoring.
           </p>
         </div>
 
@@ -45,20 +45,20 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
               Preserving the Hand of the Master Weaver.
             </h2>
             <p>
-              [Sample Copy Placeholder]: In an era of mass industrial fashion, true couture lies in patience. Every fold of our raw silk, every thread of electroplated silver zari, and every delicate needle puncture reflects the dedication of master artisans.
+              In an era of fast fashion, true couture lies in patience. Every fold of our raw silk, every thread of electroplated silver zari, and every delicate needle puncture reflects the dedication of master artisans.
             </p>
             <p>
-              [Sample Copy Placeholder]: We prioritize pure natural silks, sustainable vegetable dyes where applicable, and architectural cuts that ensure the garment moves with effortless grace.
+              We prioritize pure natural silks, sustainable vegetable dyes where applicable, and architectural cuts that ensure the garment moves with effortless grace.
             </p>
 
             <div className="pt-4 grid grid-cols-2 gap-4 border-t border-outline-variant/30 text-xs">
               <div>
                 <span className="font-serif text-2xl text-antique-gold block">100%</span>
-                <span className="text-charcoal-text/70 text-[11px]">Pure Silk Foundations (Sample)</span>
+                <span className="text-charcoal-text/70 text-[11px]">Pure Silk Foundations</span>
               </div>
               <div>
                 <span className="font-serif text-2xl text-antique-gold block">300+ hrs</span>
-                <span className="text-charcoal-text/70 text-[11px]">Average Bridal Handwork (Sample)</span>
+                <span className="text-charcoal-text/70 text-[11px]">Average Bridal Handwork</span>
               </div>
             </div>
           </div>
@@ -78,7 +78,7 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
               <Compass className="w-6 h-6 text-antique-gold mb-2" />
               <h3 className="font-serif text-xl text-charcoal-text">1. Textile Provenance</h3>
               <p className="font-sans text-xs text-charcoal-text/70 leading-relaxed">
-                [Sample Pillar Placeholder]: Sourcing directly from handloom clusters across Varanasi, Kanchipuram, and Chanderi to sustain traditional pit-loom weaving legacies.
+                Sourcing directly from handloom clusters across Varanasi, Kanchipuram, and Chanderi to sustain traditional pit-loom weaving legacies.
               </p>
             </div>
 
@@ -86,7 +86,7 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
               <Feather className="w-6 h-6 text-antique-gold mb-2" />
               <h3 className="font-serif text-xl text-charcoal-text">2. Zardozi & Needlecraft</h3>
               <p className="font-sans text-xs text-charcoal-text/70 leading-relaxed">
-                [Sample Pillar Placeholder]: Micro-bead cutdana, French knots, and antiqued metallic threads applied with microscopic precision by generation-trained craftsmen.
+                Micro-bead cutdana, French knots, and antiqued metallic threads applied with microscopic precision by generation-trained craftsmen.
               </p>
             </div>
 
@@ -94,7 +94,7 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
               <Scissors className="w-6 h-6 text-antique-gold mb-2" />
               <h3 className="font-serif text-xl text-charcoal-text">3. Tailoring Calibration</h3>
               <p className="font-sans text-xs text-charcoal-text/70 leading-relaxed">
-                [Sample Pillar Placeholder]: Structural internal corsetry and multi-layered canvas can-can linings designed for supreme comfort and balanced drape flow.
+                Structural internal corsetry and multi-layered canvas can-can linings designed for supreme comfort and balanced drape flow.
               </p>
             </div>
           </div>
@@ -109,7 +109,7 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
             Visit Our Private Atelier
           </h2>
           <p className="font-sans text-xs sm:text-sm text-ivory-base/80 max-w-xl mx-auto leading-relaxed">
-            [Sample Invitation]: Reserve a dedicated 1-on-1 consultation with our senior designers to touch our handloom archives and custom-fit your dream ensemble.
+            Reserve a dedicated 1-on-1 consultation with our senior designers to touch our handloom archives and custom-fit your dream ensemble.
           </p>
           <button
             onClick={() => onNavigate('visit-store')}
