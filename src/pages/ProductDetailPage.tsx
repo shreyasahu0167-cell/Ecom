@@ -149,9 +149,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
             {/* Main Preview Image */}
             <div className="relative aspect-[3/4] w-full overflow-hidden bg-surface-container-high border border-outline-variant/40 shadow-sm">
               <img
-                src={product.images[selectedImageIndex] || product.images[0]}
+                src={product.images[selectedImageIndex] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=85'}
                 alt={product.title}
                 className="w-full h-full object-cover object-top transition-all duration-500"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=85';
+                }}
               />
 
               {/* Sample Tag */}
@@ -175,7 +180,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
                         : 'border-outline-variant/40 hover:border-charcoal-text'
                     }`}
                   >
-                    <img src={img} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
+                    <img
+                      src={img}
+                      alt={`Angle ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80';
+                      }}
+                    />
                   </button>
                 ))}
               </div>

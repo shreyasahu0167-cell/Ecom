@@ -34,6 +34,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelectProdu
           alt={product.title}
           className="h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
           loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            if (target.src !== primaryImage) {
+              target.src = primaryImage;
+            } else {
+              target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80';
+            }
+          }}
         />
 
         {/* Top Badges */}

@@ -43,6 +43,11 @@ export const CollectionsPage: React.FC<CollectionsPageProps> = ({ onNavigate }) 
                       src={col.image}
                       alt={col.title}
                       className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80';
+                      }}
                     />
                     <div className="absolute top-4 left-4 bg-primary/85 backdrop-blur-md text-ivory-base text-[10px] font-sans px-3 py-1 uppercase tracking-widest">
                       Capsule {index + 1}

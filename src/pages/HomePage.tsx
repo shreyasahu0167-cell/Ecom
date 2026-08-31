@@ -39,6 +39,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=2000&q=85"
             alt="Saanvya Couture Hero"
             className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 ease-out"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/80 via-primary/50 to-transparent mix-blend-multiply" />
           <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-transparent to-primary/40" />
@@ -112,6 +117,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   src={col.image}
                   alt={col.title}
                   className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal-text/80 via-transparent to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
                 <div className="absolute bottom-6 left-6 right-6 text-ivory-base">
@@ -142,6 +152,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1400&q=85"
                   alt="Bridal Couture Fitting"
                   className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=80';
+                  }}
                 />
                 <div className="absolute top-4 left-4 bg-charcoal-text/85 backdrop-blur-sm text-ivory-base text-[10px] font-sans px-3 py-1 uppercase tracking-widest">
                   Atelier Craftsmanship (Sample)

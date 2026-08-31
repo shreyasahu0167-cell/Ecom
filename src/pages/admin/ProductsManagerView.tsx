@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../../types';
 import { formatInr } from '../../utils/formatters';
+import {
+  pushCatalogToSupabase,
+  getCatalogSyncStatus,
+  CatalogSyncResult,
+} from '../../services/productService';
 import {
   Plus,
   Search,
@@ -16,6 +21,9 @@ import {
   Scissors,
   Eye,
   RefreshCw,
+  Database,
+  CloudUpload,
+  Check,
 } from 'lucide-react';
 
 interface ProductsManagerViewProps {
@@ -25,6 +33,7 @@ interface ProductsManagerViewProps {
   onDeleteProduct: (productId: string) => Promise<void>;
   onDuplicateProduct: (product: Product) => Promise<void>;
   onQuickUpdateStock: (productId: string, variantId: string, newStock: number) => Promise<void>;
+  onRefreshCatalog?: () => Promise<void>;
 }
 
 export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
@@ -34,6 +43,7 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
   onDeleteProduct,
   onDuplicateProduct,
   onQuickUpdateStock,
+  onRefreshCatalog,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -48,6 +58,46 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
   const [stockEditingProductId, setStockEditingProductId] = useState<string | null>(null);
   const [stockErrorMsg, setStockErrorMsg] = useState<string | null>(null);
   const [isSavingStock, setIsSavingStock] = useState(false);
+
+  // Cloud sync state
+  const [syncStatus, setSyncStatus] = useState<{
+    isSupabaseConnected: boolean;
+    databaseProductCount: number;
+    localProductCount: number;
+  } | null>(null);
+  const [isSyncingToSupabase, setIsSyncingToSupabase] = useState(false);
+  const [syncResult, setSyncResult] = useState<CatalogSyncResult | null>(null);
+
+  const checkStatus = async () => {
+    try {
+      const status = await getCatalogSyncStatus();
+      setSyncStatus(status);
+    } catch {
+      // Ignored
+    }
+  };
+
+  useEffect(() => {
+    checkStatus();
+  }, [products]);
+
+  const handlePushToSupabase = async () => {
+    setIsSyncingToSupabase(true);
+    setSyncResult(null);
+    setOperationError(null);
+    try {
+      const result = await pushCatalogToSupabase();
+      setSyncResult(result);
+      if (onRefreshCatalog) {
+        await onRefreshCatalog();
+      }
+      await checkStatus();
+    } catch (err: any) {
+      setOperationError(err.message || 'Failed to push catalog to Supabase database.');
+    } finally {
+      setIsSyncingToSupabase(false);
+    }
+  };
 
   // Filter products
   const filteredProducts = products.filter(prod => {
@@ -139,6 +189,71 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
           <span>Add New Creation</span>
         </button>
       </div>
+
+      {/* Cloud Database Sync Control Bar */}
+      <div className="p-4 bg-surface-container border border-outline-variant/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-antique-gold/10 border border-antique-gold/30 text-antique-gold flex-shrink-0 mt-0.5">
+            <Database className="w-4 h-4" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-sm text-charcoal-text font-medium">
+                Supabase Cloud Database Sync
+              </span>
+              {syncStatus?.isSupabaseConnected ? (
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-sans font-semibold uppercase tracking-wider">
+                  Connected ({syncStatus.databaseProductCount} in cloud DB)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-sans font-semibold uppercase tracking-wider">
+                  Demo Mode / Local Storage
+                </span>
+              )}
+            </div>
+            <p className="text-xs font-sans text-charcoal-text/70 leading-relaxed max-w-2xl">
+              Ensure all product details, high-resolution imagery, and size variants are persisted to your live Supabase database so customers on all mobile and desktop devices see the exact same catalog.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full md:w-auto flex-shrink-0">
+          <button
+            type="button"
+            onClick={handlePushToSupabase}
+            disabled={isSyncingToSupabase}
+            className="w-full md:w-auto px-4 py-2.5 bg-charcoal-text text-ivory-base hover:bg-primary font-sans text-xs font-medium uppercase tracking-wider transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isSyncingToSupabase ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-antique-gold" />
+                <span>Pushing to Supabase...</span>
+              </>
+            ) : (
+              <>
+                <CloudUpload className="w-3.5 h-3.5 text-antique-gold" />
+                <span>Push Catalog to Supabase</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Sync Success Feedback */}
+      {syncResult && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-sans flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>{syncResult.message}</span>
+          </div>
+          <button
+            onClick={() => setSyncResult(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-semibold underline text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Surface Error Banner if operation failed */}
       {operationError && (
@@ -233,6 +348,11 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
                             src={product.images[0] || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=300&q=80'}
                             alt={product.title}
                             className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=300&q=80';
+                            }}
                           />
                         </div>
                         <div className="space-y-1">

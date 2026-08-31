@@ -365,9 +365,14 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                 {cart.map((item, idx) => (
                   <div key={idx} className="pt-4 first:pt-0 flex gap-3">
                     <img
-                      src={item.image}
+                      src={item.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80'}
                       alt={item.title}
                       className="w-16 h-20 object-cover bg-surface-container border border-outline-variant/30 flex-shrink-0"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80';
+                      }}
                     />
                     <div className="flex-1 text-xs font-sans">
                       <h4 className="font-serif text-sm text-charcoal-text line-clamp-1">

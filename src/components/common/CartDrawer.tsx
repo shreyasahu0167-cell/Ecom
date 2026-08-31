@@ -116,9 +116,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                 <div key={`${item.variantId}-${idx}`} className="pt-5 first:pt-0 flex gap-4">
                   {/* Thumbnail */}
                   <img
-                    src={item.image}
+                    src={item.image || 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80'}
                     alt={item.title}
                     className="w-20 h-28 object-cover bg-surface-container border border-outline-variant/30 flex-shrink-0"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80';
+                    }}
                   />
 
                   {/* Item info */}

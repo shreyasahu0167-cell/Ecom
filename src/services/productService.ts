@@ -1,10 +1,51 @@
-import { Product, ProductVariant } from '../types';
+import { Product, ProductVariant, ProductCategory } from '../types';
 import { supabase, isSupabaseConfigured, isDemoMode } from '../lib/supabase';
 import { DEMO_PRODUCTS } from '../data/demoData';
 
 const LOCAL_STORAGE_PRODUCTS_KEY = 'saanvya_products_db';
 
-function getLocalProducts(): Product[] {
+export function parseProductImages(rawImages: any): string[] {
+  if (!rawImages) return [];
+  if (Array.isArray(rawImages)) {
+    return rawImages.filter(img => typeof img === 'string' && img.trim().length > 0);
+  }
+  if (typeof rawImages === 'string') {
+    const trimmed = rawImages.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(img => typeof img === 'string' && img.trim().length > 0);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      return trimmed
+        .slice(1, -1)
+        .split(',')
+        .map(s => s.replace(/^"|"$/g, '').trim())
+        .filter(s => s.length > 0);
+    }
+    return [trimmed];
+  }
+  return [];
+}
+
+export function normalizeCategorySlug(rawSlug?: string): ProductCategory {
+  if (!rawSlug) return 'ready-to-wear';
+  const s = rawSlug.toLowerCase().trim();
+  if (s === 'bridal' || s === 'bridal-lehengas' || s === 'bridal-couture') return 'bridal';
+  if (s === 'lehengas' || s === 'occasion-lehengas') return 'lehengas';
+  if (s === 'sarees' || s === 'artisanal-sarees') return 'sarees';
+  if (s === 'anarkalis' || s === 'contemporary-anarkalis') return 'anarkalis';
+  if (s === 'ready-to-wear' || s === 'luxury-pret' || s === 'luxury-pret-kurta-sets') return 'ready-to-wear';
+  if (s === 'accessories' || s === 'fine-accessories' || s === 'accessories-fine-accents') return 'accessories';
+  return 'ready-to-wear';
+}
+
+export function getLocalProducts(): Product[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_PRODUCTS_KEY);
     if (!raw) {
@@ -22,7 +63,7 @@ function getLocalProducts(): Product[] {
   }
 }
 
-function saveLocalProducts(products: Product[]): void {
+export function saveLocalProducts(products: Product[]): void {
   try {
     localStorage.setItem(LOCAL_STORAGE_PRODUCTS_KEY, JSON.stringify(products));
   } catch (e) {
@@ -34,7 +75,7 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
   const getFilteredLocal = () => {
     const prods = getLocalProducts();
     if (categorySlug && categorySlug !== 'all') {
-      return prods.filter(p => p.category === categorySlug);
+      return prods.filter(p => normalizeCategorySlug(p.category) === normalizeCategorySlug(categorySlug));
     }
     return prods;
   };
@@ -87,7 +128,9 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
     .order('created_at', { ascending: false });
 
   if (categorySlug && categorySlug !== 'all') {
-    query = query.eq('categories.slug', categorySlug);
+    // Check if filtering by category
+    const normalized = normalizeCategorySlug(categorySlug);
+    query = query.or(`categories.slug.eq.${categorySlug},categories.slug.eq.${normalized},categories.slug.eq.${normalized}-lehengas,categories.slug.eq.artisanal-${normalized}`);
   }
 
   const { data, error } = await query;
@@ -105,7 +148,7 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
     id: item.id,
     title: item.title,
     slug: item.slug,
-    category: (item.categories?.slug as any) || 'ready-to-wear',
+    category: normalizeCategorySlug(item.categories?.slug),
     categoryLabel: item.categories?.name || 'Couture',
     collectionName: item.collection_name || undefined,
     description: item.description,
@@ -113,7 +156,7 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
     fabricSpecs: item.fabric_specs || '',
     careInstructions: item.care_instructions || '',
     basePriceInr: Number(item.base_price_inr),
-    images: item.images || [],
+    images: parseProductImages(item.images),
     isFeatured: item.is_featured,
     isNewArrival: item.is_new_arrival,
     isBespokeAvailable: item.is_bespoke_available,
@@ -197,7 +240,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
     id: data.id,
     title: data.title,
     slug: data.slug,
-    category: ((data.categories as any)?.slug as any) || 'ready-to-wear',
+    category: normalizeCategorySlug((data.categories as any)?.slug),
     categoryLabel: (data.categories as any)?.name || 'Couture',
     collectionName: data.collection_name || undefined,
     description: data.description,
@@ -205,7 +248,7 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
     fabricSpecs: data.fabric_specs || '',
     careInstructions: data.care_instructions || '',
     basePriceInr: Number(data.base_price_inr),
-    images: data.images || [],
+    images: parseProductImages(data.images),
     isFeatured: data.is_featured,
     isNewArrival: data.is_new_arrival,
     isBespokeAvailable: data.is_bespoke_available,
@@ -505,7 +548,7 @@ export async function updateProduct(productId: string, updates: Partial<Product>
       id: data.id,
       title: data.title,
       slug: data.slug,
-      category: ((data.categories as any)?.slug as any) || 'ready-to-wear',
+      category: normalizeCategorySlug((data.categories as any)?.slug),
       categoryLabel: (data.categories as any)?.name || 'Couture',
       collectionName: data.collection_name || undefined,
       description: data.description,
@@ -513,7 +556,7 @@ export async function updateProduct(productId: string, updates: Partial<Product>
       fabricSpecs: data.fabric_specs || '',
       careInstructions: data.care_instructions || '',
       basePriceInr: Number(data.base_price_inr),
-      images: data.images || [],
+      images: parseProductImages(data.images),
       isFeatured: data.is_featured,
       isNewArrival: data.is_new_arrival,
       isBespokeAvailable: data.is_bespoke_available,
@@ -627,4 +670,219 @@ export async function updateVariantStock(
   }
 
   return true;
+}
+
+export interface CatalogSyncResult {
+  success: boolean;
+  message: string;
+  syncedProducts: number;
+  syncedVariants: number;
+  errors: string[];
+}
+
+export async function getCatalogSyncStatus(): Promise<{
+  isSupabaseConnected: boolean;
+  databaseProductCount: number;
+  localProductCount: number;
+}> {
+  const localProducts = getLocalProducts();
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      isSupabaseConnected: false,
+      databaseProductCount: 0,
+      localProductCount: localProducts.length,
+    };
+  }
+
+  try {
+    const { count, error } = await supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true);
+
+    if (error) {
+      console.warn('Error checking Supabase product count:', error);
+      return {
+        isSupabaseConnected: true,
+        databaseProductCount: 0,
+        localProductCount: localProducts.length,
+      };
+    }
+
+    return {
+      isSupabaseConnected: true,
+      databaseProductCount: count || 0,
+      localProductCount: localProducts.length,
+    };
+  } catch {
+    return {
+      isSupabaseConnected: false,
+      databaseProductCount: 0,
+      localProductCount: localProducts.length,
+    };
+  }
+}
+
+export async function pushCatalogToSupabase(): Promise<CatalogSyncResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.');
+  }
+
+  const localProducts = getLocalProducts();
+  if (!localProducts || localProducts.length === 0) {
+    return {
+      success: true,
+      message: 'No local products found to push.',
+      syncedProducts: 0,
+      syncedVariants: 0,
+      errors: [],
+    };
+  }
+
+  const errors: string[] = [];
+  let syncedProductsCount = 0;
+  let syncedVariantsCount = 0;
+
+  // 1. Ensure categories exist
+  const requiredCategories = [
+    { slug: 'bridal-lehengas', name: 'Bridal Lehengas', description: 'Handcrafted heirloom bridal ensembles.' },
+    { slug: 'bridal', name: 'Bridal', description: 'Bridal collections and ensembles.' },
+    { slug: 'lehengas', name: 'Lehengas', description: 'Occasion and celebratory lehengas.' },
+    { slug: 'occasion-lehengas', name: 'Occasion Lehengas', description: 'Celebratory silhouettes.' },
+    { slug: 'artisanal-sarees', name: 'Artisanal Sarees', description: 'Handwoven pure silk sarees.' },
+    { slug: 'sarees', name: 'Sarees', description: 'Handwoven pure silk sarees.' },
+    { slug: 'contemporary-anarkalis', name: 'Contemporary Anarkalis', description: 'Floor-sweeping flared silhouettes.' },
+    { slug: 'anarkalis', name: 'Anarkalis', description: 'Floor-sweeping flared silhouettes.' },
+    { slug: 'ready-to-wear', name: 'Ready To Wear', description: 'Luxury pret and festive coordinates.' },
+    { slug: 'luxury-pret', name: 'Luxury Pret', description: 'Luxury festive coordinates.' },
+    { slug: 'accessories', name: 'Fine Accessories', description: 'Heirloom accents and embellishments.' },
+  ];
+
+  for (const cat of requiredCategories) {
+    try {
+      await supabase
+        .from('categories')
+        .upsert(
+          {
+            slug: cat.slug,
+            name: cat.name,
+            description: cat.description,
+            is_active: true,
+          },
+          { onConflict: 'slug' }
+        );
+    } catch {
+      // Continue
+    }
+  }
+
+  // Fetch resolved category map
+  const { data: categoriesData } = await supabase.from('categories').select('id, slug');
+  const categoryMap = new Map<string, string>();
+  if (categoriesData) {
+    for (const c of categoriesData) {
+      categoryMap.set(c.slug, c.id);
+    }
+  }
+
+  // 2. Insert or update each product
+  for (const prod of localProducts) {
+    try {
+      const normalizedCat = normalizeCategorySlug(prod.category);
+      const categoryId =
+        categoryMap.get(prod.category) ||
+        categoryMap.get(normalizedCat) ||
+        categoryMap.get(`${normalizedCat}-lehengas`) ||
+        categoryMap.get(`artisanal-${normalizedCat}`) ||
+        categoryMap.get('ready-to-wear') ||
+        null;
+
+      const productImages = parseProductImages(prod.images);
+
+      // Upsert product by slug
+      const { data: upsertedProd, error: prodErr } = await supabase
+        .from('products')
+        .upsert(
+          {
+            title: prod.title,
+            slug: prod.slug,
+            category_id: categoryId,
+            collection_name: prod.collectionName || null,
+            description: prod.description || '',
+            craft_details: prod.craftDetails || [],
+            fabric_specs: prod.fabricSpecs || '',
+            care_instructions: prod.careInstructions || '',
+            base_price_inr: prod.basePriceInr,
+            images: productImages,
+            is_featured: prod.isFeatured || false,
+            is_new_arrival: prod.isNewArrival || false,
+            is_bespoke_available: prod.isBespokeAvailable || false,
+            is_active: true,
+          },
+          { onConflict: 'slug' }
+        )
+        .select('id')
+        .single();
+
+      if (prodErr) {
+        errors.push(`Product '${prod.title}': ${prodErr.message}`);
+        continue;
+      }
+
+      if (upsertedProd) {
+        syncedProductsCount++;
+        const targetProductId = upsertedProd.id;
+
+        // Upsert variants
+        if (prod.variants && prod.variants.length > 0) {
+          for (const v of prod.variants) {
+            try {
+              const { error: varErr } = await supabase
+                .from('product_variants')
+                .upsert(
+                  {
+                    product_id: targetProductId,
+                    sku: v.sku,
+                    size: v.size,
+                    color: v.color,
+                    color_hex: v.colorHex,
+                    additional_price_inr: v.additionalPriceInr || 0,
+                    stock_quantity: v.stockQuantity || 0,
+                    is_active: v.isActive !== false,
+                  },
+                  { onConflict: 'sku' }
+                );
+
+              if (varErr) {
+                // If onConflict fails, insert variant
+                await supabase.from('product_variants').insert({
+                  product_id: targetProductId,
+                  sku: `${v.sku}-${Math.floor(Math.random() * 1000)}`,
+                  size: v.size,
+                  color: v.color,
+                  color_hex: v.colorHex,
+                  additional_price_inr: v.additionalPriceInr || 0,
+                  stock_quantity: v.stockQuantity || 0,
+                  is_active: v.isActive !== false,
+                });
+              }
+              syncedVariantsCount++;
+            } catch (vErr: any) {
+              errors.push(`Variant '${v.sku}': ${vErr?.message}`);
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      errors.push(`Product '${prod.title}': ${err?.message}`);
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    message: `Successfully synchronized ${syncedProductsCount} products and ${syncedVariantsCount} variants to Supabase database.`,
+    syncedProducts: syncedProductsCount,
+    syncedVariants: syncedVariantsCount,
+    errors,
+  };
 }

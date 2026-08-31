@@ -141,8 +141,21 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({
 
   // Add Image URL
   const handleAddImage = () => {
-    if (!newImageUrl.trim()) return;
-    setImages([...images, newImageUrl.trim()]);
+    const trimmed = newImageUrl.trim();
+    if (!trimmed) return;
+
+    if (trimmed.startsWith('blob:') || trimmed.startsWith('file:')) {
+      setErrorMsg('Local file/blob URLs cannot be viewed on other devices. Please provide a public web image URL (e.g. https://images.unsplash.com/... or cloud storage URL).');
+      return;
+    }
+
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      setErrorMsg('Please enter a valid web image URL starting with https://');
+      return;
+    }
+
+    setErrorMsg(null);
+    setImages([...images, trimmed]);
     setNewImageUrl('');
   };
 
@@ -537,6 +550,7 @@ export const ProductEditorModal: React.FC<ProductEditorModalProps> = ({
                           src={imgUrl}
                           alt={`Product Preview ${idx + 1}`}
                           className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
                           onError={e => {
                             (e.target as HTMLElement).setAttribute(
                               'src',

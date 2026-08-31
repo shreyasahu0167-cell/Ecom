@@ -387,6 +387,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
               onDeleteProduct={handleDeleteProduct}
               onDuplicateProduct={handleDuplicateProduct}
               onQuickUpdateStock={handleQuickUpdateStock}
+              onRefreshCatalog={loadData}
             />
           )}
 

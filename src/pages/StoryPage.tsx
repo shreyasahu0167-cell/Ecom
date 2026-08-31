@@ -33,6 +33,11 @@ export const StoryPage: React.FC<StoryPageProps> = ({ onNavigate }) => {
                 src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=85"
                 alt="Artisanal Embroidery"
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80';
+                }}
               />
             </div>
           </div>
