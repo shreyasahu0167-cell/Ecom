@@ -65,6 +65,13 @@ export function AppContent() {
         return;
       }
 
+      // Check for Supabase / email auth recovery callbacks
+      if (hash.includes('type=recovery') || hash.includes('reset-password')) {
+        setCurrentPage('auth');
+        setPageParams({ mode: 'reset-password' });
+        return;
+      }
+
       const cleanHash = window.location.hash.replace(/^#\/?/, '');
       if (cleanHash) {
         const [page, queryString] = cleanHash.split('?');
@@ -130,7 +137,8 @@ export function AppContent() {
         return <SupportPage onNavigate={handleNavigate} />;
       case 'auth':
       case 'account':
-        return <AuthPage onNavigate={handleNavigate} />;
+      case 'reset-password':
+        return <AuthPage initialMode={pageParams.mode} onNavigate={handleNavigate} />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }

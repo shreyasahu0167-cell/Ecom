@@ -9,9 +9,13 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   isSupabaseConfigured: boolean;
+  isPasswordRecoveryMode: boolean;
+  setIsPasswordRecoveryMode: (value: boolean) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<{ success: boolean; message: string; demoCode?: string }>;
+  updateUserPassword: (newPassword: string) => Promise<void>;
   demoUserLogin: (role: Role) => void;
 }
 
@@ -21,9 +25,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isPasswordRecoveryMode, setIsPasswordRecoveryMode] = useState<boolean>(false);
 
   // Initialize Supabase Auth Session if configured
   useEffect(() => {
+    // Check if recovery link was opened in URL
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') || hash.includes('mode=reset-password')) {
+      setIsPasswordRecoveryMode(true);
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       // Check for demo session in localStorage
       try {
@@ -50,7 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecoveryMode(true);
+        }
         setUser(session?.user ?? null);
         if (session?.user) {
           fetchUserProfile(session.user.id, session.user.email || '');
@@ -179,6 +193,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
   };
 
+  const sendPasswordResetEmail = async (
+    email: string
+  ): Promise<{ success: boolean; message: string; demoCode?: string }> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      throw new Error('Please enter a valid email address.');
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const redirectUrl = `${window.location.origin}/#/auth?mode=reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        success: true,
+        message: `A password reset link has been dispatched to ${trimmedEmail}. Please check your inbox and follow the secure link.`,
+      };
+    } else {
+      // Offline / Local Demo mode recovery
+      const demoCode = Math.floor(100000 + Math.random() * 900000).toString();
+      sessionStorage.setItem('saanvya_demo_reset_code', demoCode);
+      sessionStorage.setItem('saanvya_demo_reset_email', trimmedEmail);
+
+      return {
+        success: true,
+        message: `A secure password recovery verification code has been generated for ${trimmedEmail}.`,
+        demoCode,
+      };
+    }
+  };
+
+  const updateUserPassword = async (newPassword: string): Promise<void> => {
+    const trimmed = newPassword.trim();
+    if (!trimmed) {
+      throw new Error('Please enter a valid password.');
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.updateUser({
+        password: trimmed,
+      });
+
+      if (error) {
+        throw error;
+      }
+    } else {
+      // Offline / Local Demo mode: update local demo session
+      sessionStorage.removeItem('saanvya_demo_reset_code');
+      sessionStorage.removeItem('saanvya_demo_reset_email');
+    }
+    setIsPasswordRecoveryMode(false);
+  };
+
   const demoUserLogin = (role: Role) => {
     if (isSupabaseConfigured) {
       console.warn('Demo login is disabled when connected to live Supabase.');
@@ -206,9 +278,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin,
         isLoading,
         isSupabaseConfigured,
+        isPasswordRecoveryMode,
+        setIsPasswordRecoveryMode,
         signIn,
         signUp,
         signOut,
+        sendPasswordResetEmail,
+        updateUserPassword,
         demoUserLogin,
       }}
     >

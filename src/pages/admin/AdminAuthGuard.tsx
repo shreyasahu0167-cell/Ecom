@@ -15,12 +15,17 @@ import {
   LogIn,
   Check,
   X,
+  Send,
+  RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   registerAdmin,
   loginAdmin,
   getAdminCount,
   MAX_ADMIN_ACCOUNTS,
+  requestAdminPasswordReset,
+  verifyAdminResetCodeAndSetPassword,
 } from '../../services/adminAuthService';
 import { validatePasswordPolicy } from '../../utils/passwordValidation';
 
@@ -31,7 +36,7 @@ interface AdminAuthGuardProps {
 
 export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated, onExit }) => {
   const [adminCount, setAdminCount] = useState<number>(0);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
 
   // Form State (strictly empty by default - no hardcoded values)
   const [fullName, setFullName] = useState('');
@@ -39,6 +44,8 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [simulatedOtp, setSimulatedOtp] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   // Confirmation Popup State
@@ -59,12 +66,90 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
     }
   }, []);
 
-  const handleModeSwitch = (mode: 'login' | 'register') => {
+  const handleModeSwitch = (mode: 'login' | 'register' | 'forgot') => {
     setErrorMsg(null);
     setSuccessMsg(null);
     setPassword('');
     setConfirmPassword('');
+    setRecoveryCode('');
+    setSimulatedOtp(null);
     setAuthMode(mode);
+  };
+
+  const handleAdminSendRecovery = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setErrorMsg('Please enter your administrator email address.');
+      return;
+    }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      const res = requestAdminPasswordReset(trimmedEmail);
+      setIsLoading(false);
+
+      if (res.success) {
+        setSuccessMsg(`Recovery verification code dispatched to ${trimmedEmail}.`);
+        if (res.resetCode) {
+          setSimulatedOtp(res.resetCode);
+        }
+      } else {
+        setErrorMsg(res.error || 'Failed to dispatch recovery code.');
+      }
+    }, 400);
+  };
+
+  const handleAdminResetPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    const trimmedEmail = email.trim();
+    const trimmedCode = recoveryCode.trim();
+
+    if (!trimmedEmail) {
+      setErrorMsg('Please enter your administrator email address.');
+      return;
+    }
+
+    if (!trimmedCode) {
+      setErrorMsg('Please enter the 6-digit recovery code.');
+      return;
+    }
+
+    if (!password) {
+      setErrorMsg('Please enter your new administrator password.');
+      return;
+    }
+
+    if (!passwordValidation.isValid) {
+      setErrorMsg(passwordValidation.error || 'Password does not meet required security criteria.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Passwords do not match. Please verify.');
+      return;
+    }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      const res = verifyAdminResetCodeAndSetPassword(trimmedEmail, trimmedCode, password);
+      setIsLoading(false);
+
+      if (res.success) {
+        setSuccessMsg('Administrator password reset successfully. You may now sign in.');
+        setTimeout(() => {
+          handleModeSwitch('login');
+        }, 1500);
+      } else {
+        setErrorMsg(res.error || 'Password reset failed.');
+      }
+    }, 500);
   };
 
   // Called when user clicks "Sign In" or "Register" button on the form
@@ -259,16 +344,25 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
-                Password (max 14 chars)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
+                  Password (max 14 chars)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleModeSwitch('forgot')}
+                  className="text-[10px] text-antique-gold hover:text-ivory-base transition-colors tracking-wide underline uppercase"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   maxLength={14}
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Enter administrator password"
@@ -294,6 +388,185 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+        )}
+
+        {/* ================= FORGOT / RESET PASSWORD FORM ================= */}
+        {authMode === 'forgot' && (
+          <div className="space-y-4 font-sans text-xs">
+            <div className="p-3 bg-[#141414] border border-[#2D2D2D] text-ivory-base/80 text-[11px] leading-relaxed">
+              Enter your registered administrator email address to receive a secure 6-digit recovery code and reset your password.
+            </div>
+
+            {/* Step A: Request Code */}
+            {!simulatedOtp ? (
+              <form onSubmit={handleAdminSendRecovery} className="space-y-3.5">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
+                    Administrator Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="admin@saanvya.com"
+                      className="w-full pl-9 pr-4 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-antique-gold text-primary font-semibold tracking-wider uppercase text-xs hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <span>Dispatching Code...</span>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>Send Recovery Code</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* Step B: Verify Code & Set New Password */
+              <form onSubmit={handleAdminResetPassword} className="space-y-3.5">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
+                      6-Digit Recovery Verification Code
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryCode(simulatedOtp)}
+                      className="text-[10px] text-antique-gold hover:underline"
+                    >
+                      Auto-fill Code
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={recoveryCode}
+                      onChange={e => setRecoveryCode(e.target.value)}
+                      placeholder="e.g. 123456"
+                      className="w-full pl-9 pr-4 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none font-mono text-ivory-base text-xs tracking-widest"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
+                      New Password (Max 14 Chars)
+                    </label>
+                    <span className="text-[10px] font-mono text-ivory-base/50">
+                      {password.length}/14
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      maxLength={14}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Enter new administrator password"
+                      className="w-full pl-9 pr-10 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 text-ivory-base/40 hover:text-ivory-base"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password rules checklist */}
+                <div className="p-2.5 bg-[#141414] border border-[#2D2D2D] space-y-1 text-[10px]">
+                  <span className="text-ivory-base/70 font-semibold uppercase tracking-wider block mb-1">
+                    Password Security Rules:
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasMax14 && passwordValidation.rules.hasMinLength ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                      {passwordValidation.rules.hasMax14 && passwordValidation.rules.hasMinLength ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                      <span>6 - 14 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasUppercase ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                      {passwordValidation.rules.hasUppercase ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                      <span>1 Uppercase (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasLowercase ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                      {passwordValidation.rules.hasLowercase ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                      <span>1 Lowercase (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasTwoNumbers ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                      {passwordValidation.rules.hasTwoNumbers ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                      <span>2 Numbers (0-9)</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 col-span-2 ${passwordValidation.rules.hasSpecialChar ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                      {passwordValidation.rules.hasSpecialChar ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                      <span>1 Special Character (!@#$%^&*...)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      maxLength={14}
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full pl-9 pr-4 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-antique-gold text-primary font-semibold tracking-wider uppercase text-xs hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <span>Updating Password...</span>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Update Administrator Password</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            <div className="pt-2 text-center border-t border-[#2D2D2D]">
+              <button
+                type="button"
+                onClick={() => handleModeSwitch('login')}
+                className="text-xs text-ivory-base/60 hover:text-ivory-base flex items-center justify-center gap-1.5 mx-auto transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Return to Administrator Sign In</span>
+              </button>
+            </div>
+          </div>
         )}
 
         {/* ================= REGISTER FORM ================= */}

@@ -226,3 +226,103 @@ export function deleteAdminAccount(adminId: string): boolean {
   }
   return false;
 }
+
+// In-memory / temporary session reset codes cache
+interface PasswordResetEntry {
+  code: string;
+  expiresAt: number;
+}
+
+const resetCodesMap = new Map<string, PasswordResetEntry>();
+
+export function requestAdminPasswordReset(email: string): {
+  success: boolean;
+  error?: string;
+  resetCode?: string;
+} {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return { success: false, error: 'Please enter a valid administrator email address.' };
+  }
+
+  const admins = getRegisteredAdmins();
+  const exists = admins.some(a => a.email.toLowerCase() === normalizedEmail);
+
+  if (!exists) {
+    return {
+      success: false,
+      error: 'No registered administrator account found matching this email address.',
+    };
+  }
+
+  // Generate 6-digit secure recovery code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Code expires in 15 minutes
+  resetCodesMap.set(normalizedEmail, {
+    code,
+    expiresAt: Date.now() + 15 * 60 * 1000,
+  });
+
+  return {
+    success: true,
+    resetCode: code,
+  };
+}
+
+export function verifyAdminResetCodeAndSetPassword(
+  email: string,
+  code: string,
+  newPassword: string
+): { success: boolean; error?: string } {
+  const normalizedEmail = email.trim().toLowerCase();
+  const trimmedCode = code.trim();
+  const trimmedPassword = newPassword.trim();
+
+  const entry = resetCodesMap.get(normalizedEmail);
+  if (!entry) {
+    return {
+      success: false,
+      error: 'No active recovery request found for this email. Please request a new recovery code.',
+    };
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    resetCodesMap.delete(normalizedEmail);
+    return {
+      success: false,
+      error: 'Recovery verification code has expired. Please request a new one.',
+    };
+  }
+
+  if (entry.code !== trimmedCode) {
+    return {
+      success: false,
+      error: 'Invalid recovery verification code. Please check and try again.',
+    };
+  }
+
+  const validation = validatePasswordPolicy(trimmedPassword);
+  if (!validation.isValid) {
+    return {
+      success: false,
+      error: validation.error || 'Password does not meet required security criteria.',
+    };
+  }
+
+  const admins = getRegisteredAdmins();
+  const targetAdmin = admins.find(a => a.email.toLowerCase() === normalizedEmail);
+
+  if (!targetAdmin) {
+    return {
+      success: false,
+      error: 'Administrator record not found.',
+    };
+  }
+
+  // Update password hash
+  targetAdmin.passwordHash = hashPassword(trimmedPassword);
+  saveRegisteredAdmins(admins);
+  resetCodesMap.delete(normalizedEmail);
+
+  return { success: true };
+}
