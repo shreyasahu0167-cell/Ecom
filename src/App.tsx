@@ -155,7 +155,6 @@ export function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-charcoal-text selection:bg-antique-gold/20 selection:text-primary">
-      <DemoBanner />
       <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
       <main className="flex-1">
         {renderPage()}
