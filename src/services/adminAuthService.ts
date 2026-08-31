@@ -1,3 +1,5 @@
+import { validatePasswordPolicy } from '../utils/passwordValidation';
+
 export interface AdminAccount {
   id: string;
   email: string;
@@ -69,16 +71,20 @@ export function registerAdmin(params: {
   roleTitle?: string;
   saveInBackend: boolean;
 }): AuthResult {
-  const normalizedEmail倍 = params.email.trim().toLowerCase();
+  const normalizedEmail = params.email.trim().toLowerCase();
   const trimmedPassword = params.password.trim();
   const trimmedName = params.fullName.trim();
 
-  if (!normalizedEmail倍 || !trimmedPassword) {
+  if (!normalizedEmail || !trimmedPassword) {
     return { success: false, error: 'Email and password are required.' };
   }
 
-  if (trimmedPassword.length < 6) {
-    return { success: false, error: 'Password must be at least 6 characters in length.' };
+  const validation = validatePasswordPolicy(trimmedPassword);
+  if (!validation.isValid) {
+    return {
+      success: false,
+      error: validation.error || 'Password does not meet required security criteria.',
+    };
   }
 
   const existingAdmins = getRegisteredAdmins();
@@ -90,7 +96,7 @@ export function registerAdmin(params: {
     };
   }
 
-  const alreadyExists = existingAdmins.some(a => a.email.toLowerCase() === normalizedEmail倍);
+  const alreadyExists = existingAdmins.some(a => a.email.toLowerCase() === normalizedEmail);
   if (alreadyExists) {
     return {
       success: false,
@@ -100,7 +106,7 @@ export function registerAdmin(params: {
 
   const newAdmin: AdminAccount = {
     id: `admin_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    email: normalizedEmail倍,
+    email: normalizedEmail,
     passwordHash: hashPassword(trimmedPassword),
     fullName: trimmedName || 'Atelier Administrator',
     roleTitle: params.roleTitle?.trim() || 'Atelier Manager',

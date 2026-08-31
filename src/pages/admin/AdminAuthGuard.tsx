@@ -13,14 +13,16 @@ import {
   EyeOff,
   UserPlus,
   LogIn,
+  Check,
+  X,
 } from 'lucide-react';
 import {
   registerAdmin,
   loginAdmin,
   getAdminCount,
   MAX_ADMIN_ACCOUNTS,
-  getRegisteredAdmins,
 } from '../../services/adminAuthService';
+import { validatePasswordPolicy } from '../../utils/passwordValidation';
 
 interface AdminAuthGuardProps {
   onAuthenticated: () => void;
@@ -31,23 +33,27 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
   const [adminCount, setAdminCount] = useState<number>(0);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
-  // Form State
+  // Form State (strictly empty by default - no hardcoded values)
   const [fullName, setFullName] = useState('');
   const [roleTitle, setRoleTitle] = useState('Atelier Manager');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [saveInBackend, setSaveInBackend] = useState<boolean>(true);
+
+  // Confirmation Popup State
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Live password validation
+  const passwordValidation = validatePasswordPolicy(password);
+
   useEffect(() => {
     const count = getAdminCount();
     setAdminCount(count);
-    // If no admin accounts exist yet, default to register mode
     if (count === 0) {
       setAuthMode('register');
     }
@@ -56,63 +62,87 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
   const handleModeSwitch = (mode: 'login' | 'register') => {
     setErrorMsg(null);
     setSuccessMsg(null);
+    setPassword('');
+    setConfirmPassword('');
     setAuthMode(mode);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Called when user clicks "Sign In" or "Register" button on the form
+  const handleInitiateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
-    setIsLoading(true);
 
-    setTimeout(() => {
-      const result = loginAdmin(email, password, saveInBackend);
-      if (result.success) {
-        onAuthenticated();
-      } else {
-        setErrorMsg(result.error || 'Authentication failed.');
-        setIsLoading(false);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setErrorMsg('Please provide a valid administrator email address.');
+      return;
+    }
+
+    if (!password) {
+      setErrorMsg('Please enter your administrator password.');
+      return;
+    }
+
+    if (password.length > 14) {
+      setErrorMsg('Password must not exceed 14 characters in length.');
+      return;
+    }
+
+    if (authMode === 'register') {
+      if (!passwordValidation.isValid) {
+        setErrorMsg(passwordValidation.error || 'Password does not satisfy all required security rules.');
+        return;
       }
-    }, 300);
+
+      if (password !== confirmPassword) {
+        setErrorMsg('Passwords do not match. Please verify.');
+        return;
+      }
+    }
+
+    // Open Save Credentials Confirmation Popup
+    setShowSaveConfirmModal(true);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-
-    if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match. Please verify.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters in length.');
-      return;
-    }
-
+  // Called from confirmation popup when admin decides to save or not save
+  const handleConfirmAuthWithPolicy = (saveInBackend: boolean) => {
+    setShowSaveConfirmModal(false);
     setIsLoading(true);
+    setErrorMsg(null);
 
-    setTimeout(() => {
-      const result = registerAdmin({
-        email,
-        password,
-        fullName: fullName.trim() || 'Atelier Administrator',
-        roleTitle: roleTitle.trim() || 'Atelier Manager',
-        saveInBackend,
-      });
-
-      if (result.success) {
-        setSuccessMsg('Administrator account registered successfully.');
-        setAdminCount(getAdminCount());
-        setTimeout(() => {
+    if (authMode === 'login') {
+      setTimeout(() => {
+        const result = loginAdmin(email, password, saveInBackend);
+        if (result.success) {
           onAuthenticated();
-        }, 500);
-      } else {
-        setErrorMsg(result.error || 'Registration failed.');
-        setIsLoading(false);
-      }
-    }, 400);
+        } else {
+          setErrorMsg(result.error || 'Authentication failed. Please verify credentials.');
+          setIsLoading(false);
+        }
+      }, 300);
+    } else {
+      setTimeout(() => {
+        const result = registerAdmin({
+          email,
+          password,
+          fullName: fullName.trim() || 'Atelier Administrator',
+          roleTitle: roleTitle.trim() || 'Atelier Manager',
+          saveInBackend,
+        });
+
+        if (result.success) {
+          setSuccessMsg('Administrator account registered successfully.');
+          setAdminCount(getAdminCount());
+          setTimeout(() => {
+            onAuthenticated();
+          }, 500);
+        } else {
+          setErrorMsg(result.error || 'Registration failed.');
+          setIsLoading(false);
+        }
+      }, 400);
+    }
   };
 
   return (
@@ -201,7 +231,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
 
         {/* ================= LOGIN FORM ================= */}
         {authMode === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-4 font-sans text-xs">
+          <form onSubmit={handleInitiateSubmit} className="space-y-4 font-sans text-xs" autoComplete="off">
             {adminCount === 0 && (
               <div className="p-3 bg-amber-950/40 border border-amber-800/60 text-amber-200 text-[11px] font-sans">
                 No admin registered yet. Please click <strong>"Register Admin"</strong> to create your first administrative credentials.
@@ -218,6 +248,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="admin@saanvya.com"
@@ -229,13 +260,15 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
             {/* Password */}
             <div className="space-y-1.5">
               <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
-                Password
+                Password (max 14 chars)
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  maxLength={14}
+                  autoComplete="new-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Enter administrator password"
@@ -251,37 +284,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
               </div>
             </div>
 
-            {/* Save in Backend Options */}
-            <div className="p-3 bg-[#141414] border border-[#2D2D2D] space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-ivory-base font-medium">
-                <Database className="w-3.5 h-3.5 text-antique-gold" />
-                <span>Save credentials in backend storage?</span>
-              </div>
-              <div className="space-y-1.5 pl-5 text-[11px]">
-                <label className="flex items-center gap-2 cursor-pointer text-ivory-base/80 hover:text-ivory-base">
-                  <input
-                    type="radio"
-                    name="loginSaveInBackend"
-                    checked={saveInBackend === true}
-                    onChange={() => setSaveInBackend(true)}
-                    className="text-antique-gold focus:ring-antique-gold bg-[#1F1F1F]"
-                  />
-                  <span>Yes — Save in backend database</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-ivory-base/80 hover:text-ivory-base">
-                  <input
-                    type="radio"
-                    name="loginSaveInBackend"
-                    checked={saveInBackend === false}
-                    onChange={() => setSaveInBackend(false)}
-                    className="text-antique-gold focus:ring-antique-gold bg-[#1F1F1F]"
-                  />
-                  <span>No — Do not save (Session only)</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -295,7 +298,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
 
         {/* ================= REGISTER FORM ================= */}
         {authMode === 'register' && (
-          <form onSubmit={handleRegister} className="space-y-3.5 font-sans text-xs">
+          <form onSubmit={handleInitiateSubmit} className="space-y-3.5 font-sans text-xs" autoComplete="off">
             {/* Quota Notice */}
             <div className="p-2.5 bg-[#141414] border border-[#2D2D2D] text-[11px] text-ivory-base/80 flex items-center justify-between">
               <span>Admin Quota Slot:</span>
@@ -314,6 +317,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
                   placeholder="e.g. Shreya Sahu (Creative Director)"
@@ -332,6 +336,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="admin@saanvya.com"
@@ -342,18 +347,24 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
 
             {/* Password */}
             <div className="space-y-1">
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
-                Set Administrator Password (min 6 chars)
-              </label>
+              <div className="flex justify-between items-center">
+                <label className="block text-[10px] font-semibold uppercase tracking-widest text-ivory-base/80">
+                  Password (Max 14 Chars)
+                </label>
+                <span className="text-[10px] font-mono text-ivory-base/50">
+                  {password.length}/14
+                </span>
+              </div>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
-                  minLength={6}
+                  maxLength={14}
+                  autoComplete="new-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter strong password"
+                  placeholder="e.g. Saanvya@2026"
                   className="w-full pl-9 pr-10 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
                 />
                 <button
@@ -363,6 +374,35 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+            </div>
+
+            {/* Live Password Requirements Checklist */}
+            <div className="p-2.5 bg-[#141414] border border-[#2D2D2D] space-y-1 text-[10px]">
+              <span className="text-ivory-base/70 font-semibold uppercase tracking-wider block mb-1">
+                Password Security Rules:
+              </span>
+              <div className="grid grid-cols-2 gap-1 text-[10px]">
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasMax14 && passwordValidation.rules.hasMinLength ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                  {passwordValidation.rules.hasMax14 && passwordValidation.rules.hasMinLength ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                  <span>6 - 14 characters</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasUppercase ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                  {passwordValidation.rules.hasUppercase ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                  <span>1 Uppercase (A-Z)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasLowercase ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                  {passwordValidation.rules.hasLowercase ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                  <span>1 Lowercase (a-z)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasTwoNumbers ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                  {passwordValidation.rules.hasTwoNumbers ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                  <span>2 Numbers (0-9)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 col-span-2 ${passwordValidation.rules.hasSpecialChar ? 'text-emerald-400' : 'text-ivory-base/50'}`}>
+                  {passwordValidation.rules.hasSpecialChar ? <Check className="w-3 h-3 text-emerald-400" /> : <X className="w-3 h-3 text-ivory-base/40" />}
+                  <span>1 Special Character (!@#$%^&*...)</span>
+                </div>
               </div>
             </div>
 
@@ -376,42 +416,13 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
-                  minLength={6}
+                  maxLength={14}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter password"
                   className="w-full pl-9 pr-4 py-2 bg-[#141414] border border-[#333333] focus:border-antique-gold focus:outline-none text-ivory-base text-xs"
                 />
-              </div>
-            </div>
-
-            {/* Save in Backend Selection */}
-            <div className="p-3 bg-[#141414] border border-[#2D2D2D] space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-ivory-base font-medium">
-                <Database className="w-3.5 h-3.5 text-antique-gold" />
-                <span>Save credentials in backend storage?</span>
-              </div>
-              <div className="space-y-1.5 pl-5 text-[11px]">
-                <label className="flex items-center gap-2 cursor-pointer text-ivory-base/80 hover:text-ivory-base">
-                  <input
-                    type="radio"
-                    name="regSaveInBackend"
-                    checked={saveInBackend === true}
-                    onChange={() => setSaveInBackend(true)}
-                    className="text-antique-gold focus:ring-antique-gold bg-[#1F1F1F]"
-                  />
-                  <span>Yes — Save in backend database</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-ivory-base/80 hover:text-ivory-base">
-                  <input
-                    type="radio"
-                    name="regSaveInBackend"
-                    checked={saveInBackend === false}
-                    onChange={() => setSaveInBackend(false)}
-                    className="text-antique-gold focus:ring-antique-gold bg-[#1F1F1F]"
-                  />
-                  <span>No — Do not save (Session only)</span>
-                </label>
               </div>
             </div>
 
@@ -421,12 +432,64 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
               disabled={isLoading || adminCount >= MAX_ADMIN_ACCOUNTS}
               className="w-full py-3 bg-antique-gold text-primary font-semibold tracking-wider uppercase text-xs hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <span>{isLoading ? 'Creating Account...' : 'Register & Enter Atelier'}</span>
+              <span>{isLoading ? 'Processing...' : 'Register & Enter Atelier'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
         )}
       </div>
+
+      {/* Save Password Confirmation Modal / Popup */}
+      {showSaveConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-[#1A1A1A] border border-antique-gold/50 shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 border-b border-[#2D2D2D] pb-3">
+              <div className="w-10 h-10 bg-antique-gold/15 text-antique-gold flex items-center justify-center border border-antique-gold/30">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg text-ivory-base font-medium">
+                  Save Credentials in Backend?
+                </h3>
+                <p className="text-[11px] font-sans text-ivory-base/60">
+                  {authMode === 'register' ? 'Admin Registration Confirmation' : 'Sign-In Confirmation'}
+                </p>
+              </div>
+            </div>
+
+            <p className="font-sans text-xs text-ivory-base/80 leading-relaxed">
+              Would you like to securely store your administrator credentials in persistent backend storage for subsequent sessions on this workstation?
+            </p>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => handleConfirmAuthWithPolicy(true)}
+                className="w-full py-3 bg-antique-gold text-primary font-semibold text-xs uppercase tracking-wider hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Yes — Save in Backend Database</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleConfirmAuthWithPolicy(false)}
+                className="w-full py-2.5 bg-[#252525] border border-[#3D3D3D] text-ivory-base text-xs hover:bg-[#2F2F2F] transition-colors flex items-center justify-center gap-2"
+              >
+                <span>No — Temporary Session Only</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSaveConfirmModal(false)}
+                className="w-full py-1.5 text-center text-[11px] text-ivory-base/50 hover:text-ivory-base underline transition-colors"
+              >
+                Cancel & Review Form
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="text-center text-[10px] font-sans text-ivory-base/40 max-w-md mx-auto w-full pb-2">

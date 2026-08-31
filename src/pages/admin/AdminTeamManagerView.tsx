@@ -12,6 +12,8 @@ import {
   Clock,
   ShieldCheck,
   Lock,
+  Check,
+  X,
 } from 'lucide-react';
 import {
   AdminAccount,
@@ -21,6 +23,7 @@ import {
   MAX_ADMIN_ACCOUNTS,
   getCurrentAdminSession,
 } from '../../services/adminAuthService';
+import { validatePasswordPolicy } from '../../utils/passwordValidation';
 
 export const AdminTeamManagerView: React.FC = () => {
   const [admins, setAdmins] = useState<AdminAccount[]>(() => getRegisteredAdmins());
@@ -33,29 +36,50 @@ export const AdminTeamManagerView: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [saveInBackend, setSaveInBackend] = useState(true);
+
+  // Confirmation Modal State
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const passwordValidation = validatePasswordPolicy(password);
 
   const refreshAdmins = () => {
     setAdmins(getRegisteredAdmins());
   };
 
-  const handleRegisterNewAdmin = (e: React.FormEvent) => {
+  const handleInitiateRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setErrorMsg('Please enter a valid administrator email.');
+      return;
+    }
+
+    if (password.length > 14) {
+      setErrorMsg('Password must be a maximum of 14 characters.');
+      return;
+    }
+
+    if (!passwordValidation.isValid) {
+      setErrorMsg(passwordValidation.error || 'Password does not meet required criteria.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setErrorMsg('Passwords do not match.');
       return;
     }
 
-    if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters in length.');
-      return;
-    }
+    setShowConfirmPopup(true);
+  };
+
+  const handleExecuteRegister = (saveInBackend: boolean) => {
+    setShowConfirmPopup(false);
 
     const result = registerAdmin({
       email,
@@ -143,7 +167,7 @@ export const AdminTeamManagerView: React.FC = () => {
             <h3 className="font-serif text-lg text-charcoal-text">Register Authorized Administrator</h3>
           </div>
 
-          <form onSubmit={handleRegisterNewAdmin} className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans text-xs">
+          <form onSubmit={handleInitiateRegister} className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans text-xs" autoComplete="off">
             <div className="space-y-1">
               <label className="block text-[10px] font-semibold uppercase tracking-widest text-charcoal-text/80">
                 Full Name
@@ -153,6 +177,7 @@ export const AdminTeamManagerView: React.FC = () => {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={fullName}
                   onChange={e => setFullName(e.target.value)}
                   placeholder="e.g. Priyanshu Sharma"
@@ -168,6 +193,7 @@ export const AdminTeamManagerView: React.FC = () => {
               <input
                 type="text"
                 required
+                autoComplete="off"
                 value={roleTitle}
                 onChange={e => setRoleTitle(e.target.value)}
                 placeholder="e.g. Senior Inventory Director"
@@ -184,6 +210,7 @@ export const AdminTeamManagerView: React.FC = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="admin@saanvya.com"
@@ -193,15 +220,21 @@ export const AdminTeamManagerView: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[10px] font-semibold uppercase tracking-widest text-charcoal-text/80">
-                Password (min 6 chars)
-              </label>
+              <div className="flex justify-between items-center">
+                <label className="block text-[10px] font-semibold uppercase tracking-widest text-charcoal-text/80">
+                  Password (Max 14 chars)
+                </label>
+                <span className="text-[10px] font-mono text-charcoal-text/60">
+                  {password.length}/14
+                </span>
+              </div>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-antique-gold absolute left-3 top-3" />
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  maxLength={14}
+                  autoComplete="new-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Enter secure password"
@@ -219,7 +252,8 @@ export const AdminTeamManagerView: React.FC = () => {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  maxLength={14}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Confirm password"
@@ -228,33 +262,32 @@ export const AdminTeamManagerView: React.FC = () => {
               </div>
             </div>
 
-            {/* Save in Backend Selector */}
-            <div className="md:col-span-2 p-3 bg-background border border-outline-variant space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal-text">
-                <Database className="w-4 h-4 text-antique-gold" />
-                <span>Save credentials in backend storage?</span>
-              </div>
-              <div className="space-y-1 pl-5 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer text-charcoal-text">
-                  <input
-                    type="radio"
-                    name="adminTeamSaveBackend"
-                    checked={saveInBackend === true}
-                    onChange={() => setSaveInBackend(true)}
-                    className="text-antique-gold focus:ring-antique-gold"
-                  />
-                  <span>Yes — Save in persistent backend database</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-charcoal-text">
-                  <input
-                    type="radio"
-                    name="adminTeamSaveBackend"
-                    checked={saveInBackend === false}
-                    onChange={() => setSaveInBackend(false)}
-                    className="text-antique-gold focus:ring-antique-gold"
-                  />
-                  <span>No — Do not save (Temporary session only)</span>
-                </label>
+            {/* Password Policy Checklist */}
+            <div className="md:col-span-2 p-3 bg-background border border-outline-variant space-y-1.5 text-[11px]">
+              <span className="font-semibold text-charcoal-text/80 uppercase tracking-wider block">
+                Required Password Rules:
+              </span>
+              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasMax14 && passwordValidation.rules.hasMinLength ? 'text-emerald-700 font-medium' : 'text-charcoal-text/60'}`}>
+                  {passwordValidation.rules.hasMax14 && passwordValidation.rules.hasMinLength ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-charcoal-text/40" />}
+                  <span>6 - 14 Characters</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasUppercase ? 'text-emerald-700 font-medium' : 'text-charcoal-text/60'}`}>
+                  {passwordValidation.rules.hasUppercase ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-charcoal-text/40" />}
+                  <span>1 Uppercase Letter (A-Z)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasLowercase ? 'text-emerald-700 font-medium' : 'text-charcoal-text/60'}`}>
+                  {passwordValidation.rules.hasLowercase ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-charcoal-text/40" />}
+                  <span>1 Lowercase Letter (a-z)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${passwordValidation.rules.hasTwoNumbers ? 'text-emerald-700 font-medium' : 'text-charcoal-text/60'}`}>
+                  {passwordValidation.rules.hasTwoNumbers ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-charcoal-text/40" />}
+                  <span>2 Numbers (0-9)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 col-span-2 ${passwordValidation.rules.hasSpecialChar ? 'text-emerald-700 font-medium' : 'text-charcoal-text/60'}`}>
+                  {passwordValidation.rules.hasSpecialChar ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-charcoal-text/40" />}
+                  <span>1 Special Character (!@#$%^&*...)</span>
+                </div>
               </div>
             </div>
 
@@ -270,10 +303,62 @@ export const AdminTeamManagerView: React.FC = () => {
                 type="submit"
                 className="px-5 py-2 bg-antique-gold text-primary font-semibold hover:bg-antique-gold-light transition-colors"
               >
-                Register Admin Account
+                Continue to Save Options
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Confirmation Popup */}
+      {showConfirmPopup && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-surface-container-low border border-antique-gold/60 shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 border-b border-outline-variant/30 pb-3">
+              <div className="w-10 h-10 bg-antique-gold/15 text-antique-gold flex items-center justify-center border border-antique-gold/30">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg text-charcoal-text font-medium">
+                  Save Admin Credentials?
+                </h3>
+                <p className="text-xs font-sans text-charcoal-text/60">
+                  Storage policy confirmation for {email}
+                </p>
+              </div>
+            </div>
+
+            <p className="font-sans text-xs text-charcoal-text/80 leading-relaxed">
+              Would you like to store credentials for this administrator in persistent backend storage, or keep it active only for the current workstation session?
+            </p>
+
+            <div className="space-y-2.5 pt-2 font-sans text-xs">
+              <button
+                type="button"
+                onClick={() => handleExecuteRegister(true)}
+                className="w-full py-3 bg-antique-gold text-primary font-semibold uppercase tracking-wider hover:bg-antique-gold-light transition-colors flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Yes — Save in Backend Database</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleExecuteRegister(false)}
+                className="w-full py-2.5 bg-surface-container border border-outline-variant text-charcoal-text hover:border-charcoal-text transition-colors flex items-center justify-center gap-2"
+              >
+                <span>No — Temporary Session Only</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowConfirmPopup(false)}
+                className="w-full py-1 text-center text-[11px] text-charcoal-text/60 hover:text-charcoal-text underline"
+              >
+                Cancel & Edit Details
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
