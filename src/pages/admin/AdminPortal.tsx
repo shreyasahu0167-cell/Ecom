@@ -62,6 +62,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
   // Active admin check
   const isAuthed = isAdmin || (!isSupabaseConfigured && isDemoMode && isCurrentAdminAuthenticated());
 
+  // Keep currentAdmin synchronized whenever auth state or active session changes
+  useEffect(() => {
+    setCurrentAdmin(getCurrentAdminSession());
+  }, [isAuthed, isAdmin, profile]);
+
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -199,7 +204,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
   }
 
   if (!isAuthed) {
-    return <AdminAuthGuard onAuthenticated={() => loadData()} onExit={onExit} />;
+    return (
+      <AdminAuthGuard
+        onAuthenticated={() => {
+          setCurrentAdmin(getCurrentAdminSession());
+          loadData();
+        }}
+        onExit={onExit}
+      />
+    );
   }
 
   return (

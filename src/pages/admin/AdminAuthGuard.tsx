@@ -23,6 +23,8 @@ import {
   registerAdmin,
   loginAdmin,
   getAdminCount,
+  getRegisteredAdmins,
+  setAdminSession,
   MAX_ADMIN_ACCOUNTS,
 } from '../../services/adminAuthService';
 import { useAuth } from '../../context/AuthContext';
@@ -200,6 +202,13 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
       if (isSupabaseConfigured) {
         try {
           await signIn(email, password);
+          // Set local admin session so portal header and clearance state displays correctly
+          const existing = getRegisteredAdmins().find(a => a.email.toLowerCase() === email.trim().toLowerCase());
+          if (existing) {
+            setAdminSession(existing, saveInBackend);
+          } else {
+            loginAdmin(email, password, saveInBackend);
+          }
           onAuthenticated();
         } catch (err: any) {
           setErrorMsg(err.message || 'Authentication failed. Please verify credentials.');
@@ -221,8 +230,18 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
     } else {
       if (isSupabaseConfigured) {
         try {
+          // Register credentials with Supabase
           await signUp(email, password, fullName.trim() || 'Atelier Administrator');
-          setSuccessMsg('Administrator account registration submitted.');
+          // Also track local admin session metadata for atelier clearance
+          registerAdmin({
+            email,
+            password,
+            fullName: fullName.trim() || 'Atelier Administrator',
+            roleTitle: roleTitle.trim() || 'Atelier Manager',
+            saveInBackend,
+          });
+          setSuccessMsg('Administrator account registered successfully.');
+          setAdminCount(getAdminCount());
           setTimeout(() => {
             onAuthenticated();
           }, 600);
