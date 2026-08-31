@@ -90,7 +90,7 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
   }
 
   // Production Mode: Fetch from Supabase directly
-  let query = supabase
+  const { data, error } = await supabase
     .from('products')
     .select(`
       id,
@@ -127,14 +127,6 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  if (categorySlug && categorySlug !== 'all') {
-    // Check if filtering by category
-    const normalized = normalizeCategorySlug(categorySlug);
-    query = query.or(`categories.slug.eq.${categorySlug},categories.slug.eq.${normalized},categories.slug.eq.${normalized}-lehengas,categories.slug.eq.artisanal-${normalized}`);
-  }
-
-  const { data, error } = await query;
-
   if (error) {
     throw new Error(`Failed to fetch products from database: ${error.message}`);
   }
@@ -144,7 +136,7 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
   }
 
   // Map Supabase snake_case records to Product interface
-  return data.map((item: any) => ({
+  const mappedProducts: Product[] = data.map((item: any) => ({
     id: item.id,
     title: item.title,
     slug: item.slug,
@@ -176,6 +168,15 @@ export async function fetchAllProducts(categorySlug?: string): Promise<Product[]
         isActive: v.is_active,
       })),
   }));
+
+  if (categorySlug && categorySlug !== 'all') {
+    const targetNormalized = normalizeCategorySlug(categorySlug);
+    return mappedProducts.filter(
+      p => normalizeCategorySlug(p.category) === targetNormalized || p.category === categorySlug
+    );
+  }
+
+  return mappedProducts;
 }
 
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {
