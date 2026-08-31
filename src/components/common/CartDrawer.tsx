@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { formatInr } from '../../utils/formatters';
+import { getStoreSettings, DEFAULT_DEMO_STORE_SETTINGS } from '../../services/storeSettingsService';
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 
 interface CartDrawerProps {
@@ -18,9 +19,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
     totalItems,
   } = useCart();
 
+  const [threshold, setThreshold] = useState<number>(DEFAULT_DEMO_STORE_SETTINGS.freeShippingThresholdInr);
+
+  useEffect(() => {
+    let isMounted = true;
+    getStoreSettings()
+      .then(settings => {
+        if (isMounted) {
+          setThreshold(settings.freeShippingThresholdInr);
+        }
+      })
+      .catch(() => {
+        // Safe fallback in case of unconfigured state
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [isCartOpen]);
+
   if (!isCartOpen) return null;
 
-  const freeShippingThreshold = 15000;
+  const freeShippingThreshold = threshold;
   const progressToFreeShipping = Math.min(
     100,
     Math.round((subtotalInr / freeShippingThreshold) * 100)

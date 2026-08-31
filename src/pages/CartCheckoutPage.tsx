@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { formatInr } from '../utils/formatters';
 import { createOrder, CreateOrderPayload } from '../services/orderService';
+import { getStoreSettings, DEFAULT_DEMO_STORE_SETTINGS } from '../services/storeSettingsService';
+import { StoreSettings } from '../types';
 import {
   ShoppingBag,
   ShieldCheck,
@@ -21,6 +23,24 @@ interface CartCheckoutPageProps {
 export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }) => {
   const { cart, subtotalInr, clearCart } = useCart();
   const { profile, isSupabaseConfigured } = useAuth();
+
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(DEFAULT_DEMO_STORE_SETTINGS);
+
+  useEffect(() => {
+    let isMounted = true;
+    getStoreSettings()
+      .then(settings => {
+        if (isMounted) {
+          setStoreSettings(settings);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load store settings:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [email, setEmail] = useState(profile?.email || '');
   const [phone, setPhone] = useState(profile?.phone || '');
@@ -56,8 +76,9 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
     );
   }
 
-  const estimatedTax = Math.round(subtotalInr * 0.12);
-  const shippingFee = subtotalInr >= 15000 ? 0 : 500;
+  const estimatedTax = Math.round(subtotalInr * storeSettings.gstRate);
+  const shippingFee =
+    subtotalInr >= storeSettings.freeShippingThresholdInr ? 0 : storeSettings.standardShippingFeeInr;
   const estimatedGrandTotal = subtotalInr + estimatedTax + shippingFee;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -97,7 +118,10 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
 
       const result = await createOrder(payload, cart);
       clearCart();
-      onNavigate('order-confirmation', { orderId: result.orderId });
+      onNavigate('order-confirmation', {
+        orderId: result.orderId,
+        orderSummary: result.order,
+      });
     } catch (err: any) {
       setSubmissionError(err.message || 'Order submission could not be completed.');
     } finally {
@@ -183,7 +207,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                     required
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    placeholder="e.g. Radhika Sharma"
+                    placeholder="Enter full recipient name"
                     className="w-full bg-background border border-outline-variant/50 p-2.5 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                   />
                 </div>
@@ -197,7 +221,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                     required
                     value={addressLine1}
                     onChange={e => setAddressLine1(e.target.value)}
-                    placeholder="Flat 402, Royal Residency, Linking Road"
+                    placeholder="Building / Flat number, street address"
                     className="w-full bg-background border border-outline-variant/50 p-2.5 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                   />
                 </div>
@@ -210,7 +234,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                     type="text"
                     value={addressLine2}
                     onChange={e => setAddressLine2(e.target.value)}
-                    placeholder="Opposite Heritage Park"
+                    placeholder="Landmark, locality, or suite (optional)"
                     className="w-full bg-background border border-outline-variant/50 p-2.5 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                   />
                 </div>
@@ -225,7 +249,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                       required
                       value={city}
                       onChange={e => setCity(e.target.value)}
-                      placeholder="Mumbai"
+                      placeholder="City"
                       className="w-full bg-background border border-outline-variant/50 p-2.5 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                     />
                   </div>
@@ -238,7 +262,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                       required
                       value={state}
                       onChange={e => setState(e.target.value)}
-                      placeholder="Maharashtra"
+                      placeholder="State"
                       className="w-full bg-background border border-outline-variant/50 p-2.5 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                     />
                   </div>
@@ -371,7 +395,7 @@ export const CartCheckoutPage: React.FC<CartCheckoutPageProps> = ({ onNavigate }
                   <span className="font-medium text-charcoal-text">{formatInr(subtotalInr)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Estimated Luxury GST (12%)</span>
+                  <span>Estimated Luxury GST ({Math.round(storeSettings.gstRate * 100)}%)</span>
                   <span className="font-medium text-charcoal-text">{formatInr(estimatedTax)}</span>
                 </div>
                 <div className="flex justify-between">

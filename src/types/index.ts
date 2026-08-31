@@ -169,3 +169,9 @@ export interface UserProfile {
   phone?: string;
   savedAddresses?: ShippingAddress[];
 }
+
+export interface StoreSettings {
+  gstRate: number;
+  freeShippingThresholdInr: number;
+  standardShippingFeeInr: number;
+}

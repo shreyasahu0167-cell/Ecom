@@ -4,6 +4,9 @@ import { CartProvider } from './context/CartContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { CartDrawer } from './components/common/CartDrawer';
+import { DemoBanner } from './components/common/DemoBanner';
+import { ConfigurationErrorView } from './components/common/ConfigurationErrorView';
+import { isSupabaseConfigured, isDemoMode } from './lib/supabase';
 
 // Client Storefront Pages
 import { HomePage } from './pages/HomePage';
@@ -98,6 +101,11 @@ export function AppContent() {
     };
   }, []);
 
+  // Production check: If Supabase credentials are not configured and VITE_DEMO_MODE is false, show configuration error
+  if (!isSupabaseConfigured && !isDemoMode) {
+    return <ConfigurationErrorView />;
+  }
+
   // Isolated Admin Route: Render completely independent of main storefront layout
   if (currentPage === 'admin') {
     return <AdminPortal onExit={() => handleNavigate('home')} />;
@@ -126,6 +134,7 @@ export function AppContent() {
         return (
           <OrderConfirmationPage
             orderId={pageParams.orderId || ''}
+            orderSummary={pageParams.orderSummary || null}
             onNavigate={handleNavigate}
           />
         );
@@ -146,6 +155,7 @@ export function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-charcoal-text selection:bg-antique-gold/20 selection:text-primary">
+      <DemoBanner />
       <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
       <main className="flex-1">
         {renderPage()}

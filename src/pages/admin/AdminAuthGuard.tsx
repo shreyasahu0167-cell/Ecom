@@ -24,9 +24,8 @@ import {
   loginAdmin,
   getAdminCount,
   MAX_ADMIN_ACCOUNTS,
-  requestAdminPasswordReset,
-  verifyAdminResetCodeAndSetPassword,
 } from '../../services/adminAuthService';
+import { useAuth } from '../../context/AuthContext';
 import { validatePasswordPolicy } from '../../utils/passwordValidation';
 
 interface AdminAuthGuardProps {
@@ -35,6 +34,16 @@ interface AdminAuthGuardProps {
 }
 
 export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated, onExit }) => {
+  const {
+    signIn,
+    signUp,
+    sendPasswordResetEmail,
+    updateUserPassword,
+    isSupabaseConfigured,
+    isDemoMode,
+    demoUserLogin,
+  } = useAuth();
+
   const [adminCount, setAdminCount] = useState<number>(0);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
 
@@ -61,10 +70,10 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
   useEffect(() => {
     const count = getAdminCount();
     setAdminCount(count);
-    if (count === 0) {
+    if (count === 0 && !isSupabaseConfigured && isDemoMode) {
       setAuthMode('register');
     }
-  }, []);
+  }, [isSupabaseConfigured, isDemoMode]);
 
   const handleModeSwitch = (mode: 'login' | 'register' | 'forgot') => {
     setErrorMsg(null);
@@ -76,7 +85,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
     setAuthMode(mode);
   };
 
-  const handleAdminSendRecovery = (e: React.FormEvent) => {
+  const handleAdminSendRecovery = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -88,22 +97,20 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = requestAdminPasswordReset(trimmedEmail);
+    try {
+      const res = await sendPasswordResetEmail(trimmedEmail);
       setIsLoading(false);
-
-      if (res.success) {
-        setSuccessMsg(`Recovery verification code dispatched to ${trimmedEmail}.`);
-        if (res.resetCode) {
-          setSimulatedOtp(res.resetCode);
-        }
-      } else {
-        setErrorMsg(res.error || 'Failed to dispatch recovery code.');
+      setSuccessMsg(res.message);
+      if (res.demoCode) {
+        setSimulatedOtp(res.demoCode);
       }
-    }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err.message || 'Failed to dispatch recovery code.');
+    }
   };
 
-  const handleAdminResetPassword = (e: React.FormEvent) => {
+  const handleAdminResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -113,11 +120,6 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
 
     if (!trimmedEmail) {
       setErrorMsg('Please enter your administrator email address.');
-      return;
-    }
-
-    if (!trimmedCode) {
-      setErrorMsg('Please enter the 6-digit recovery code.');
       return;
     }
 
@@ -137,19 +139,17 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = verifyAdminResetCodeAndSetPassword(trimmedEmail, trimmedCode, password);
+    try {
+      await updateUserPassword(password);
       setIsLoading(false);
-
-      if (res.success) {
-        setSuccessMsg('Administrator password reset successfully. You may now sign in.');
-        setTimeout(() => {
-          handleModeSwitch('login');
-        }, 1500);
-      } else {
-        setErrorMsg(res.error || 'Password reset failed.');
-      }
-    }, 500);
+      setSuccessMsg('Administrator password reset successfully. You may now sign in.');
+      setTimeout(() => {
+        handleModeSwitch('login');
+      }, 1500);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err.message || 'Password reset failed.');
+    }
   };
 
   // Called when user clicks "Sign In" or "Register" button on the form
@@ -191,13 +191,22 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
   };
 
   // Called from confirmation popup when admin decides to save or not save
-  const handleConfirmAuthWithPolicy = (saveInBackend: boolean) => {
+  const handleConfirmAuthWithPolicy = async (saveInBackend: boolean) => {
     setShowSaveConfirmModal(false);
     setIsLoading(true);
     setErrorMsg(null);
 
     if (authMode === 'login') {
-      setTimeout(() => {
+      if (isSupabaseConfigured) {
+        try {
+          await signIn(email, password);
+          onAuthenticated();
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Authentication failed. Please verify credentials.');
+          setIsLoading(false);
+        }
+      } else if (isDemoMode) {
+        demoUserLogin('admin');
         const result = loginAdmin(email, password, saveInBackend);
         if (result.success) {
           onAuthenticated();
@@ -205,9 +214,23 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
           setErrorMsg(result.error || 'Authentication failed. Please verify credentials.');
           setIsLoading(false);
         }
-      }, 300);
+      } else {
+        setErrorMsg('Authentication is unavailable because Supabase is not configured and Demo Mode is disabled.');
+        setIsLoading(false);
+      }
     } else {
-      setTimeout(() => {
+      if (isSupabaseConfigured) {
+        try {
+          await signUp(email, password, fullName.trim() || 'Atelier Administrator');
+          setSuccessMsg('Administrator account registration submitted.');
+          setTimeout(() => {
+            onAuthenticated();
+          }, 600);
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Registration failed.');
+          setIsLoading(false);
+        }
+      } else if (isDemoMode) {
         const result = registerAdmin({
           email,
           password,
@@ -217,6 +240,7 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
         });
 
         if (result.success) {
+          demoUserLogin('admin');
           setSuccessMsg('Administrator account registered successfully.');
           setAdminCount(getAdminCount());
           setTimeout(() => {
@@ -226,7 +250,10 @@ export const AdminAuthGuard: React.FC<AdminAuthGuardProps> = ({ onAuthenticated,
           setErrorMsg(result.error || 'Registration failed.');
           setIsLoading(false);
         }
-      }, 400);
+      } else {
+        setErrorMsg('Registration is unavailable because Supabase is not configured and Demo Mode is disabled.');
+        setIsLoading(false);
+      }
     }
   };
 

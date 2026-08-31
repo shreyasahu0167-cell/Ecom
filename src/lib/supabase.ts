@@ -1,24 +1,35 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = 'https://gdrsakejkfcfaomkjkaz.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Um0GKnc4Qj2xFJqhJZCZmQ_hbd8juXC';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+// Explicit demo mode flag: strictly true only when VITE_DEMO_MODE is 'true'
+export const isDemoMode: boolean = import.meta.env.VITE_DEMO_MODE === 'true';
 
-export const isSupabaseConfigured: boolean = true;
+// Dynamically check if valid Supabase environment credentials are provided
+export const isSupabaseConfigured: boolean = Boolean(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  supabaseUrl.startsWith('https://') &&
+  !supabaseUrl.includes('placeholder') &&
+  !supabaseUrl.includes('your-project')
+);
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+// If credentials are missing or invalid, do not initialize or connect to Supabase
+export const supabase: SupabaseClient | null = isSupabaseConfigured && supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+    })
+  : null;
 
 /**
- * Returns the active Supabase client.
+ * Returns the active Supabase client or null if unconfigured.
  */
-export function getSupabase(): SupabaseClient {
+export function getSupabase(): SupabaseClient | null {
   return supabase;
 }
+

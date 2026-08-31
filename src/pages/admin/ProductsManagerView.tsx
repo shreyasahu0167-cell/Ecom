@@ -39,11 +39,15 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStockFilter, setSelectedStockFilter] = useState('all');
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
+  const [isDuplicatingId, setIsDuplicatingId] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   // Quick stock editor state
   const [stockEditingVariantId, setStockEditingVariantId] = useState<string | null>(null);
   const [stockEditingValue, setStockEditingValue] = useState<number>(0);
   const [stockEditingProductId, setStockEditingProductId] = useState<string | null>(null);
+  const [stockErrorMsg, setStockErrorMsg] = useState<string | null>(null);
+  const [isSavingStock, setIsSavingStock] = useState(false);
 
   // Filter products
   const filteredProducts = products.filter(prod => {
@@ -69,11 +73,26 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
   const handleDelete = async (productId: string, title: string) => {
     if (window.confirm(`Are you sure you want to permanently remove "${title}" from the catalog?`)) {
       setIsDeletingId(productId);
+      setOperationError(null);
       try {
         await onDeleteProduct(productId);
+      } catch (err: any) {
+        setOperationError(err.message || 'Failed to delete product from database.');
       } finally {
         setIsDeletingId(null);
       }
+    }
+  };
+
+  const handleDuplicate = async (product: Product) => {
+    setIsDuplicatingId(product.id);
+    setOperationError(null);
+    try {
+      await onDuplicateProduct(product);
+    } catch (err: any) {
+      setOperationError(err.message || 'Failed to duplicate product in database.');
+    } finally {
+      setIsDuplicatingId(null);
     }
   };
 
@@ -81,16 +100,21 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
     setStockEditingProductId(productId);
     setStockEditingVariantId(variantId);
     setStockEditingValue(currentStock);
+    setStockErrorMsg(null);
   };
 
   const handleSaveStock = async () => {
     if (!stockEditingProductId || !stockEditingVariantId) return;
+    setIsSavingStock(true);
+    setStockErrorMsg(null);
     try {
       await onQuickUpdateStock(stockEditingProductId, stockEditingVariantId, stockEditingValue);
       setStockEditingVariantId(null);
       setStockEditingProductId(null);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setStockErrorMsg(err.message || 'Failed to update stock quantity.');
+    } finally {
+      setIsSavingStock(false);
     }
   };
 
@@ -115,6 +139,22 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
           <span>Add New Creation</span>
         </button>
       </div>
+
+      {/* Surface Error Banner if operation failed */}
+      {operationError && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-xs font-sans flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+            <span>{operationError}</span>
+          </div>
+          <button
+            onClick={() => setOperationError(null)}
+            className="text-red-700 hover:text-red-900 font-semibold underline text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Search & Filter Toolbar */}
       <div className="p-4 bg-surface-container-low border border-outline-variant/40 flex flex-col md:flex-row items-stretch md:items-center gap-3 text-xs font-sans">
@@ -297,8 +337,9 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => onDuplicateProduct(product)}
-                          className="p-2 text-charcoal-text hover:text-primary hover:bg-surface-container transition-colors"
+                          onClick={() => handleDuplicate(product)}
+                          disabled={isDuplicatingId === product.id}
+                          className="p-2 text-charcoal-text hover:text-primary hover:bg-surface-container transition-colors disabled:opacity-50"
                           title="Duplicate Item"
                         >
                           <Copy className="w-4 h-4" />
@@ -306,7 +347,7 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
                         <button
                           onClick={() => handleDelete(product.id, product.title)}
                           disabled={isDeletingId === product.id}
-                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50"
                           title="Delete Product"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -345,6 +386,14 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
             <p className="text-charcoal-text/70">
               Adjust current available warehouse/atelier unit count for this variant:
             </p>
+
+            {stockErrorMsg && (
+              <div className="p-2.5 bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                <span>{stockErrorMsg}</span>
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <label className="font-semibold text-charcoal-text">Units in Stock:</label>
               <input
@@ -357,16 +406,21 @@ export const ProductsManagerView: React.FC<ProductsManagerViewProps> = ({
             </div>
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/30">
               <button
-                onClick={() => setStockEditingVariantId(null)}
+                onClick={() => {
+                  setStockEditingVariantId(null);
+                  setStockErrorMsg(null);
+                }}
                 className="px-4 py-2 border border-outline-variant bg-surface-container hover:bg-surface-container-high text-charcoal-text"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveStock}
-                className="px-4 py-2 bg-primary text-ivory-base font-semibold hover:bg-charcoal-text"
+                disabled={isSavingStock}
+                className="px-4 py-2 bg-primary text-ivory-base font-semibold hover:bg-charcoal-text disabled:opacity-50 flex items-center gap-1.5"
               >
-                Update Stock
+                {isSavingStock && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isSavingStock ? 'Saving...' : 'Update Stock'}</span>
               </button>
             </div>
           </div>

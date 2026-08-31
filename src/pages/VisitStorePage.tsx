@@ -195,9 +195,10 @@ export const VisitStorePage: React.FC<VisitStorePageProps> = ({ onNavigate }) =>
                     <input
                       type="text"
                       required
+                      maxLength={120}
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
-                      placeholder="e.g. Ananya Sen"
+                      placeholder="Enter your full name"
                       className="w-full bg-background border border-outline-variant/50 p-2.5 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                     />
                   </div>
@@ -208,6 +209,7 @@ export const VisitStorePage: React.FC<VisitStorePageProps> = ({ onNavigate }) =>
                     <input
                       type="tel"
                       required
+                      maxLength={30}
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       placeholder="+91 98765 00000"
@@ -223,6 +225,7 @@ export const VisitStorePage: React.FC<VisitStorePageProps> = ({ onNavigate }) =>
                   <input
                     type="email"
                     required
+                    maxLength={255}
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="client@example.com"
@@ -301,6 +304,7 @@ export const VisitStorePage: React.FC<VisitStorePageProps> = ({ onNavigate }) =>
                   </label>
                   <textarea
                     rows={3}
+                    maxLength={1500}
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Tell us about your wedding date, preferred color palettes, or specific silhouettes."

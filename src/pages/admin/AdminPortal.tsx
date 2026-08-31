@@ -26,6 +26,7 @@ import { AdminTeamManagerView } from './AdminTeamManagerView';
 import { ProductEditorModal } from './ProductEditorModal';
 import { OrderDetailModal } from './OrderDetailModal';
 import { AdminAuthGuard } from './AdminAuthGuard';
+import { useAuth } from '../../context/AuthContext';
 import {
   getCurrentAdminSession,
   logoutAdmin,
@@ -54,12 +55,12 @@ interface AdminPortalProps {
 }
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return isCurrentAdminAuthenticated();
-  });
-
+  const { profile, isAdmin, isLoading: isAuthLoading, signOut, isSupabaseConfigured, isDemoMode } = useAuth();
   const [currentAdmin, setCurrentAdmin] = useState(() => getCurrentAdminSession());
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'appointments' | 'admins'>('dashboard');
+
+  // Active admin check
+  const isAuthed = isAdmin || (!isSupabaseConfigured && isDemoMode && isCurrentAdminAuthenticated());
 
   // Data State
   const [products, setProducts] = useState<Product[]>([]);
@@ -94,14 +95,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthed) {
       loadData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthed]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     logoutAdmin();
-    setIsAuthenticated(false);
     setCurrentAdmin(null);
   };
 
@@ -184,8 +185,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ onExit }) => {
     setAppointments(prev => prev.map(a => (a.id === id ? { ...a, status } : a)));
   };
 
-  if (!isAuthenticated) {
-    return <AdminAuthGuard onAuthenticated={() => setIsAuthenticated(true)} onExit={onExit} />;
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <RefreshCw className="w-6 h-6 text-antique-gold animate-spin" />
+          <span className="text-xs font-sans uppercase tracking-widest text-charcoal-text/60">
+            Verifying Atelier Security Clearance...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthed) {
+    return <AdminAuthGuard onAuthenticated={() => loadData()} onExit={onExit} />;
   }
 
   return (

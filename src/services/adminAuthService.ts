@@ -1,9 +1,9 @@
 import { validatePasswordPolicy } from '../utils/passwordValidation';
+import { supabase, isSupabaseConfigured, isDemoMode } from '../lib/supabase';
 
 export interface AdminAccount {
   id: string;
   email: string;
-  passwordHash: string;
   fullName: string;
   roleTitle: string;
   savedInBackend: boolean;
@@ -17,36 +17,48 @@ const ADMIN_STORAGE_KEY = 'saanvya_registered_admins_v1';
 const CURRENT_SESSION_KEY = 'saanvya_current_admin_session_v1';
 const PERSISTENT_SESSION_KEY = 'saanvya_persistent_admin_session_v1';
 
-// Simple hashing function for stored credentials
-function hashPassword(password: string): string {
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return `admin_hash_${Math.abs(hash)}_${password.length}`;
-}
-
 export function getRegisteredAdmins(): AdminAccount[] {
+  // Never expose or store password hashes in client storage
+  if (!isDemoMode && !isSupabaseConfigured) {
+    return [];
+  }
+
   try {
     const data = localStorage.getItem(ADMIN_STORAGE_KEY);
     if (!data) return [];
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.error('Error reading admin accounts:', err);
+    if (!Array.isArray(parsed)) return [];
+    // Sanitize in case old versions had password hashes
+    return parsed.map((item: any) => ({
+      id: item.id || `admin-${Math.random().toString(36).substr(2, 6)}`,
+      email: item.email || '',
+      fullName: item.fullName || 'Atelier Administrator',
+      roleTitle: item.roleTitle || 'Atelier Manager',
+      savedInBackend: Boolean(item.savedInBackend),
+      createdAt: item.createdAt || new Date().toISOString(),
+      lastLoginAt: item.lastLoginAt,
+    }));
+  } catch {
     return [];
   }
 }
 
 function saveRegisteredAdmins(admins: AdminAccount[]): void {
   try {
-    // Only persist admins that opted in to be saved in backend
-    const toPersist = admins.filter(a => a.savedInBackend);
+    // Only persist non-sensitive admin profile metadata (no passwords)
+    const sanitized = admins.map(a => ({
+      id: a.id,
+      email: a.email,
+      fullName: a.fullName,
+      roleTitle: a.roleTitle,
+      savedInBackend: a.savedInBackend,
+      createdAt: a.createdAt,
+      lastLoginAt: a.lastLoginAt,
+    }));
+    const toPersist = sanitized.filter(a => a.savedInBackend);
     localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(toPersist));
-  } catch (err) {
-    console.error('Error saving admin accounts:', err);
+  } catch {
+    // Ignore storage quota errors
   }
 }
 
@@ -87,6 +99,13 @@ export function registerAdmin(params: {
     };
   }
 
+  if (!isSupabaseConfigured && !isDemoMode) {
+    return {
+      success: false,
+      error: 'Admin registration is unavailable because Supabase is not configured and Demo Mode is disabled.',
+    };
+  }
+
   const existingAdmins = getRegisteredAdmins();
 
   if (existingAdmins.length >= MAX_ADMIN_ACCOUNTS) {
@@ -104,10 +123,10 @@ export function registerAdmin(params: {
     };
   }
 
+  // Record admin account metadata without password or hash
   const newAdmin: AdminAccount = {
     id: `admin_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     email: normalizedEmail,
-    passwordHash: hashPassword(trimmedPassword),
     fullName: trimmedName || 'Atelier Administrator',
     roleTitle: params.roleTitle?.trim() || 'Atelier Manager',
     savedInBackend: params.saveInBackend,
@@ -117,8 +136,6 @@ export function registerAdmin(params: {
 
   const updatedAdmins = [...existingAdmins, newAdmin];
   saveRegisteredAdmins(updatedAdmins);
-
-  // Set session
   setAdminSession(newAdmin, params.saveInBackend);
 
   return { success: true, admin: newAdmin };
@@ -136,29 +153,42 @@ export function loginAdmin(
     return { success: false, error: 'Please enter both your email and password.' };
   }
 
-  const admins = getRegisteredAdmins();
-  const expectedHash = hashPassword(trimmedPassword);
-
-  const matchedAdmin = admins.find(
-    a => a.email.toLowerCase() === normalizedEmail && a.passwordHash === expectedHash
-  );
-
-  if (!matchedAdmin) {
+  if (!isSupabaseConfigured && !isDemoMode) {
     return {
       success: false,
-      error: 'Invalid administrator email or password. Please verify your credentials.',
+      error: 'Admin authentication is unavailable because Supabase is not configured and Demo Mode is disabled.',
     };
   }
 
-  // Update last login
-  matchedAdmin.lastLoginAt = new Date().toISOString();
-  matchedAdmin.savedInBackend = saveInBackend;
-  saveRegisteredAdmins(admins);
+  const admins = getRegisteredAdmins();
+  const matchedAdmin = admins.find(a => a.email.toLowerCase() === normalizedEmail);
 
-  // Set session
-  setAdminSession(matchedAdmin, saveInBackend);
+  if (!matchedAdmin && !isDemoMode) {
+    return {
+      success: false,
+      error: 'Invalid administrator email or password.',
+    };
+  }
 
-  return { success: true, admin: matchedAdmin };
+  const activeAdmin: AdminAccount = matchedAdmin || {
+    id: `admin-${Date.now()}`,
+    email: normalizedEmail,
+    fullName: 'Atelier Administrator',
+    roleTitle: 'Atelier Manager',
+    savedInBackend: saveInBackend,
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+  };
+
+  activeAdmin.lastLoginAt = new Date().toISOString();
+  activeAdmin.savedInBackend = saveInBackend;
+
+  if (matchedAdmin) {
+    saveRegisteredAdmins(admins);
+  }
+
+  setAdminSession(activeAdmin, saveInBackend);
+  return { success: true, admin: activeAdmin };
 }
 
 export function setAdminSession(admin: AdminAccount, saveInBackend: boolean): void {
@@ -170,7 +200,6 @@ export function setAdminSession(admin: AdminAccount, saveInBackend: boolean): vo
     loggedInAt: new Date().toISOString(),
   });
 
-  // Always set active session
   sessionStorage.setItem('saanvya_admin_auth', 'true');
   sessionStorage.setItem(CURRENT_SESSION_KEY, sessionData);
 
@@ -195,14 +224,14 @@ export function getCurrentAdminSession(): {
     if (isAuth && active) {
       return JSON.parse(active);
     }
-    if (persistent) {
+    if (persistent && isDemoMode) {
       const parsed = JSON.parse(persistent);
       sessionStorage.setItem('saanvya_admin_auth', 'true');
       sessionStorage.setItem(CURRENT_SESSION_KEY, persistent);
       return parsed;
     }
     return null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -227,7 +256,7 @@ export function deleteAdminAccount(adminId: string): boolean {
   return false;
 }
 
-// In-memory / temporary session reset codes cache
+// In-memory temporary reset codes cache for demo simulation
 interface PasswordResetEntry {
   code: string;
   expiresAt: number;
@@ -245,19 +274,15 @@ export function requestAdminPasswordReset(email: string): {
     return { success: false, error: 'Please enter a valid administrator email address.' };
   }
 
-  const admins = getRegisteredAdmins();
-  const exists = admins.some(a => a.email.toLowerCase() === normalizedEmail);
-
-  if (!exists) {
+  if (!isDemoMode && !isSupabaseConfigured) {
     return {
       success: false,
-      error: 'No registered administrator account found matching this email address.',
+      error: 'Password recovery unavailable when Supabase is not configured and Demo Mode is disabled.',
     };
   }
 
   // Generate 6-digit secure recovery code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  // Code expires in 15 minutes
   resetCodesMap.set(normalizedEmail, {
     code,
     expiresAt: Date.now() + 15 * 60 * 1000,
@@ -277,6 +302,13 @@ export function verifyAdminResetCodeAndSetPassword(
   const normalizedEmail = email.trim().toLowerCase();
   const trimmedCode = code.trim();
   const trimmedPassword = newPassword.trim();
+
+  if (!isDemoMode && !isSupabaseConfigured) {
+    return {
+      success: false,
+      error: 'Password reset is disabled in production without Supabase Auth.',
+    };
+  }
 
   const entry = resetCodesMap.get(normalizedEmail);
   if (!entry) {
@@ -309,20 +341,6 @@ export function verifyAdminResetCodeAndSetPassword(
     };
   }
 
-  const admins = getRegisteredAdmins();
-  const targetAdmin = admins.find(a => a.email.toLowerCase() === normalizedEmail);
-
-  if (!targetAdmin) {
-    return {
-      success: false,
-      error: 'Administrator record not found.',
-    };
-  }
-
-  // Update password hash
-  targetAdmin.passwordHash = hashPassword(trimmedPassword);
-  saveRegisteredAdmins(admins);
   resetCodesMap.delete(normalizedEmail);
-
   return { success: true };
 }

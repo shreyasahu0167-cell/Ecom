@@ -6,29 +6,66 @@ import { CheckCircle2, Clock, Package, ArrowRight, ShieldAlert, Sparkles } from 
 
 interface OrderConfirmationPageProps {
   orderId: string;
+  orderSummary?: Order | null;
   onNavigate: (page: string, params?: any) => void;
 }
 
 export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({
   orderId,
+  orderSummary,
   onNavigate,
 }) => {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [order, setOrder] = useState<Order | null>(() => {
+    if (orderSummary && (orderSummary.id === orderId || orderSummary.orderNumber === orderId || !orderId)) {
+      return orderSummary;
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (orderSummary && (orderSummary.id === orderId || orderSummary.orderNumber === orderId || !orderId)) {
+      return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
+    if (orderSummary && (orderSummary.id === orderId || orderSummary.orderNumber === orderId || !orderId)) {
+      setOrder(orderSummary);
+      setIsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
     async function load() {
+      if (!orderId) {
+        if (isMounted) {
+          setOrder(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
         const data = await fetchOrderDetails(orderId);
-        setOrder(data);
+        if (isMounted) {
+          setOrder(data);
+        }
       } catch (err) {
-        console.error(err);
+        if (isMounted) {
+          setOrder(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
     load();
-  }, [orderId]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId, orderSummary]);
 
   if (isLoading) {
     return (

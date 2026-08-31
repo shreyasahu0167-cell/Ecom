@@ -30,12 +30,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate, initialMode }) =
     signIn,
     signUp,
     profile,
+    profileError,
     signOut,
     sendPasswordResetEmail,
     updateUserPassword,
     isPasswordRecoveryMode,
     setIsPasswordRecoveryMode,
     isSupabaseConfigured,
+    isDemoMode,
   } = useAuth();
 
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot' | 'reset-password'>(
@@ -275,6 +277,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate, initialMode }) =
 
         {/* Live Auth Box */}
         <div className="bg-surface-container-low p-8 border border-outline-variant/30 space-y-6">
+          {profileError && (
+            <div className="p-3.5 bg-error/10 border border-error/30 text-error text-xs font-sans flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">Profile Clearance Error</p>
+                <p>{profileError}</p>
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="text-[11px] underline text-error font-medium block pt-1"
+                >
+                  Sign Out and Retry
+                </button>
+              </div>
+            </div>
+          )}
+
           {errorMsg && (
             <div className="p-3.5 bg-error/10 border border-error/30 text-error text-xs font-sans flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -317,7 +336,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate, initialMode }) =
                       autoComplete="off"
                       value={fullName}
                       onChange={e => setFullName(e.target.value)}
-                      placeholder="e.g. Radhika Sharma"
+                      placeholder="Enter your full name"
                       className="w-full bg-background border border-outline-variant/50 p-2.5 pl-9 text-xs text-charcoal-text focus:outline-none focus:border-antique-gold"
                     />
                   </div>
